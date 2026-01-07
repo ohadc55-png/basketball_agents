@@ -31,13 +31,15 @@ AGE_GROUPS = ["U10", "U12", "U14", "U16", "U18", "Senior"]
 LEVELS = ["Beginner", "League", "Competitive", "Professional"]
 
 class Agent(Enum):
-    HEAD_COACH = "head_coach"
+    ASSISTANT_COACH = "assistant_coach"
     TACTICIAN = "tactician"
     SKILLS_COACH = "skills_coach"
+    NUTRITIONIST = "nutritionist"
+    STRENGTH_COACH = "strength_coach"
 
 AGENT_INFO = {
-    Agent.HEAD_COACH: {
-        "name": "HEAD COACH",
+    Agent.ASSISTANT_COACH: {
+        "name": "ASSISTANT COACH",
         "icon": "🎯",
         "title": "General Manager",
         "specialty": "Team Leadership & Strategy",
@@ -56,6 +58,20 @@ AGENT_INFO = {
         "title": "Player Development",
         "specialty": "Training & Drills",
         "color": "#00FF87"
+    },
+    Agent.NUTRITIONIST: {
+        "name": "SPORTS NUTRITIONIST",
+        "icon": "🥗",
+        "title": "Nutrition Expert",
+        "specialty": "Personalized Diet Plans",
+        "color": "#FFD700"
+    },
+    Agent.STRENGTH_COACH: {
+        "name": "STRENGTH & CONDITIONING",
+        "icon": "🏋️",
+        "title": "Physical Development",
+        "specialty": "Athletic Performance",
+        "color": "#FF4500"
     }
 }
 
@@ -63,9 +79,9 @@ def get_system_prompt(agent, coach_profile=None):
     """Generate system prompt with coach profile context"""
     
     base_prompts = {
-        Agent.HEAD_COACH: """You are the Head Coach of a professional basketball coaching staff.
+        Agent.ASSISTANT_COACH: """You are the Assistant Coach of a professional basketball coaching staff.
 Handle general basketball inquiries, team management, and coordination.
-Be professional, supportive, and helpful.""",
+Be professional, supportive, and helpful. Help the head coach with any administrative or organizational tasks.""",
 
         Agent.TACTICIAN: """You are an elite basketball strategist (Euroleague-level).
 Expertise: Spacing, defensive schemes (Switch, Hedge, Drop, ICE), ATOs, SLOBs/BLOBs,
@@ -75,7 +91,54 @@ Be concise and tactical. Use proper basketball terminology.""",
         Agent.SKILLS_COACH: """You are a top Player Development Coach.
 Expertise: Shooting mechanics, ball handling, footwork, finishing at rim.
 Age-appropriate training: Mini-basket (U10), Youth (U12-U14), Juniors (U16-U18), Pros.
-Be encouraging but demanding."""
+Be encouraging but demanding.""",
+
+        Agent.NUTRITIONIST: """You are an expert Sports Nutritionist specializing in basketball players of ALL age groups.
+
+YOUR EXPERTISE:
+- Personalized nutrition plans based on individual player data (age, weight, height, position, activity level)
+- Pre-game, during-game, and post-game nutrition strategies
+- Hydration protocols for training and competition
+- Age-appropriate nutrition (youth players need different approaches than adults)
+- Muscle building vs. weight management diets
+- Supplement guidance (age-appropriate, safe, legal)
+- Recovery nutrition and sleep optimization
+- Dealing with picky eaters (especially young players)
+
+CRITICAL APPROACH:
+- ALWAYS ask for specific player data before giving recommendations: age, weight, height, position, training frequency, goals
+- Create PERSONALIZED meal plans - never generic advice
+- Consider cultural food preferences and availability
+- Adjust recommendations based on game schedule and training intensity
+- For youth players: focus on growth, development, and healthy habits
+- For adult players: focus on performance optimization and recovery
+
+Provide specific meal plans, grocery lists, and practical recipes when asked.""",
+
+        Agent.STRENGTH_COACH: """You are an elite Strength & Conditioning Coach specializing in basketball.
+
+YOUR EXPERTISE:
+- Age-specific athletic development:
+  * U10-U12: Coordination, balance, agility, FUN movement patterns, bodyweight exercises
+  * U14-U16: Introduction to resistance training, explosive power foundation, jump training basics
+  * U18+: Full strength programs, plyometrics, power development, vertical jump optimization
+- Basketball-specific physical attributes: vertical leap, lateral quickness, core stability, injury prevention
+- Periodization: weekly, monthly, and yearly training plans
+- Load management based on game schedule and competition calendar
+- Individual player assessment and personalized programs
+- Injury prevention and prehab exercises
+- Recovery protocols and deload weeks
+
+CRITICAL APPROACH:
+- ALWAYS ask for player data before programming: age, training history, current fitness level, injury history, goals
+- Create INDIVIDUALIZED programs - never one-size-fits-all
+- Consider the basketball practice and game schedule when designing strength work
+- Build programs that complement basketball training, not compete with it
+- For young players: emphasize movement quality over load
+- For older players: progressive overload with proper periodization
+
+Provide detailed workout plans with sets, reps, rest periods, and exercise descriptions.
+Can create daily, weekly, monthly, and seasonal training programs based on team schedule and goals."""
     }
     
     prompt = base_prompts[agent]
@@ -99,14 +162,17 @@ IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew o
     return prompt
 
 ROUTER_PROMPT = """Determine which coach should answer this basketball question.
+
 Rules:
-- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
-- SKILLS_COACH: drills, shooting, dribbling, footwork, player development, training
-- HEAD_COACH: general questions, team management, motivation, other
+- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs, offensive/defensive systems
+- SKILLS_COACH: basketball drills, shooting, dribbling, footwork, player skill development
+- NUTRITIONIST: food, diet, meals, nutrition, eating, hydration, supplements, weight management
+- STRENGTH_COACH: gym, strength, conditioning, fitness, weights, jumping, speed, agility, physical training, workout programs, periodization
+- ASSISTANT_COACH: general questions, team management, motivation, scheduling, or anything that doesn't fit above
 
 Question: {question}
 
-Answer with ONE word only: TACTICIAN, SKILLS_COACH, or HEAD_COACH"""
+Answer with ONE word only: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, or ASSISTANT_COACH"""
 
 # ============================================================================
 # CSS STYLING
@@ -479,9 +545,13 @@ def route_question(question, client):
             return Agent.TACTICIAN
         elif "SKILLS" in result:
             return Agent.SKILLS_COACH
-        return Agent.HEAD_COACH
+        elif "NUTRITION" in result:
+            return Agent.NUTRITIONIST
+        elif "STRENGTH" in result:
+            return Agent.STRENGTH_COACH
+        return Agent.ASSISTANT_COACH
     except Exception:
-        return Agent.HEAD_COACH
+        return Agent.ASSISTANT_COACH
 
 def get_agent_response(question, agent, chat_history, client, coach_profile=None):
     """Get response from specific agent"""
@@ -522,7 +592,7 @@ def get_agent_from_value(value):
     for agent in Agent:
         if agent.value == value:
             return agent
-    return Agent.HEAD_COACH
+    return Agent.ASSISTANT_COACH
 
 # ============================================================================
 # UI COMPONENTS
@@ -721,7 +791,9 @@ def render_welcome():
         </div>
         ''', unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
+        col3, col4 = st.columns(2)
+        
         with col1:
             if st.button("📋 ZONE OFFENSE", use_container_width=True):
                 st.session_state.pending_prompt = "What are the best strategies to beat a 2-3 zone defense?"
@@ -729,8 +801,11 @@ def render_welcome():
             if st.button("💪 SHOOTING DRILLS", use_container_width=True):
                 st.session_state.pending_prompt = "What are good shooting drills for my team?"
         with col3:
-            if st.button("🎯 תרגילי כדרור", use_container_width=True):
-                st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקנים שלי"
+            if st.button("🥗 GAME DAY NUTRITION", use_container_width=True):
+                st.session_state.pending_prompt = "What should my players eat before and after a game?"
+        with col4:
+            if st.button("🏋️ VERTICAL JUMP", use_container_width=True):
+                st.session_state.pending_prompt = "How can I improve my players' vertical jump?"
 
 def render_chat(client, supabase):
     """Render chat interface"""
@@ -742,7 +817,7 @@ def render_chat(client, supabase):
             with st.chat_message("user", avatar="👤"):
                 st.markdown(msg["content"])
         else:
-            agent = get_agent_from_value(msg.get("agent", Agent.HEAD_COACH))
+            agent = get_agent_from_value(msg.get("agent", Agent.ASSISTANT_COACH))
             with st.chat_message("assistant", avatar=AGENT_INFO[agent]["icon"]):
                 st.markdown(msg["content"], unsafe_allow_html=True)
     

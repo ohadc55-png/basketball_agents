@@ -90,6 +90,9 @@ IMPORTANT: You MUST detect the language of the user's input and respond in the S
 If the user writes in Hebrew, respond in Hebrew. If in English, respond in English."""
 }
 
+# Fixed model - no selection needed
+MODEL_NAME = "gemini-1.5-flash"
+
 ROUTER_PROMPT = """Analyze the following basketball coaching question and determine which specialist should handle it.
 
 ROUTING RULES:
@@ -355,15 +358,9 @@ def init_gemini():
         return False
 
 
-def get_available_models():
-    return {
-        "Gemini 1.5 Flash (Free)": "gemini-1.5-flash",
-    }
-
-
-def route_question(question, model_name):
+def route_question(question):
     try:
-        model = genai.GenerativeModel(model_name)
+        model = genai.GenerativeModel(MODEL_NAME)
         prompt = ROUTER_PROMPT.format(question=question)
         response = model.generate_content(prompt)
         result = response.text.strip().upper()
@@ -378,10 +375,10 @@ def route_question(question, model_name):
         return Agent.HEAD_ASSISTANT
 
 
-def get_agent_response(question, agent, model_name, chat_history):
+def get_agent_response(question, agent, chat_history):
     try:
         model = genai.GenerativeModel(
-            model_name,
+            MODEL_NAME,
             system_instruction=SYSTEM_INSTRUCTIONS[agent]
         )
         
@@ -430,24 +427,6 @@ def render_sidebar():
         </div>
         <div class="sidebar-divider"></div>
         """, unsafe_allow_html=True)
-        
-        # Model Selection
-        st.markdown("""
-        <div style="font-family: 'Orbitron', monospace; color: #FF6B35; font-size: 0.9rem; margin-bottom: 0.5rem; letter-spacing: 2px;">
-            ⚡ AI ENGINE
-        </div>
-        """, unsafe_allow_html=True)
-        
-        models = get_available_models()
-        selected_model_name = st.selectbox(
-            "Select Model",
-            options=list(models.keys()),
-            index=0,
-            label_visibility="collapsed"
-        )
-        st.session_state.model = models[selected_model_name]
-        
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         # Coaching Staff
         st.markdown("""
@@ -534,8 +513,8 @@ def render_welcome_banner():
             
             st.session_state.messages.append({"role": "user", "content": prompt})
             
-            agent = route_question(prompt, st.session_state.model)
-            response = get_agent_response(prompt, agent, st.session_state.model, [])
+            agent = route_question(prompt)
+            response = get_agent_response(prompt, agent, [])
             formatted_response = format_agent_response(response, agent)
             
             st.session_state.messages.append({
@@ -564,7 +543,7 @@ def render_chat_interface():
             st.markdown(prompt)
         
         with st.spinner("🏀 Analyzing play..."):
-            agent = route_question(prompt, st.session_state.model)
+            agent = route_question(prompt)
         
         info = AGENT_INFO[agent]
         with st.chat_message("assistant", avatar=info["icon"]):
@@ -572,7 +551,6 @@ def render_chat_interface():
                 response = get_agent_response(
                     prompt, 
                     agent, 
-                    st.session_state.model,
                     st.session_state.messages[:-1]
                 )
                 formatted_response = format_agent_response(response, agent)
@@ -602,8 +580,6 @@ def main():
     
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    if "model" not in st.session_state:
-        st.session_state.model = "gemini-1.5-flash"
     
     if not init_gemini():
         st.stop()

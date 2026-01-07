@@ -1,4 +1,5 @@
 """
+"""
 🏀 Basketball Coaching Staff - Virtual Locker Room
 A multi-agent AI application for basketball coaches
 Built with Streamlit & Google Gemini API
@@ -146,9 +147,7 @@ def init_gemini():
 def get_available_models():
     """Return available Gemini models for selection."""
     return {
-        "Gemini 2.0 Flash (Fast)": "gemini-2.0-flash",
-        "Gemini 1.5 Flash (Fast)": "gemini-1.5-flash",
-        "Gemini 1.5 Pro (Advanced)": "gemini-1.5-pro",
+        "Gemini 1.5 Flash (Free)": "gemini-1.5-flash-latest",
     }
 
 
@@ -425,7 +424,7 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "model" not in st.session_state:
-        st.session_state.model = "gemini-2.0-flash"
+        st.session_state.model = "gemini-1.5-flash-latest"
     
     # Initialize Gemini
     if not init_gemini():

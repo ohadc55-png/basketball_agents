@@ -14,6 +14,7 @@ from enum import Enum
 # ============================================================================
 
 LOGO_URL = "https://i.postimg.cc/DfYpGxMy/Fashion-Bran-Logo.png"
+BACKGROUND_URL = "https://i.postimg.cc/nr6WXxHh/wlm-kdwrsl.jpg"
 
 class Agent(Enum):
     HEAD_ASSISTANT = "head_assistant"
@@ -129,11 +130,11 @@ Your routing decision:"""
 # ============================================================================
 
 def get_custom_css():
-    return """
+    return f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
     
-    :root {
+    :root {{
         --primary-orange: #FF6B35;
         --bright-orange: #FF8C42;
         --dark-bg: #0D0D0D;
@@ -142,11 +143,14 @@ def get_custom_css():
         --neon-green: #00FF87;
         --text-primary: #FFFFFF;
         --text-secondary: #B0B0B0;
-    }
+    }}
     
-    .stApp {
-        background: linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
-    }
+    .stApp {{
+        background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.9)), url("{BACKGROUND_URL}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }}
     
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}

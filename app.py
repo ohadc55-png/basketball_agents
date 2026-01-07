@@ -2,10 +2,11 @@
 """
 HOOPS AI - Basketball Coaching Staff
 Virtual Locker Room with Multi-Agent System
+Powered by OpenAI GPT
 """
 
 import streamlit as st
-import google.generativeai as genai
+from openai import OpenAI
 from enum import Enum
 
 # ============================================================================
@@ -83,14 +84,14 @@ Question: {question}
 Answer with ONE word only: TACTICIAN, SKILLS_COACH, or HEAD_COACH"""
 
 # ============================================================================
-# CSS STYLING
+# CSS STYLING - Background at 50% opacity (more visible)
 # ============================================================================
 CUSTOM_CSS = """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
     
     .stApp {
-        background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.9)), url('BACKGROUND_URL_PLACEHOLDER');
+        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('BACKGROUND_URL_PLACEHOLDER');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
@@ -105,7 +106,7 @@ CUSTOM_CSS = """
     }
     
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
+        background: linear-gradient(180deg, rgba(13,13,13,0.95) 0%, rgba(26,26,26,0.95) 50%, rgba(13,13,13,0.95) 100%);
         border-right: 1px solid rgba(255, 107, 53, 0.3);
     }
     
@@ -133,26 +134,28 @@ CUSTOM_CSS = """
     }
     
     .scoreboard {
-        background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(30,30,30,0.9));
+        background: linear-gradient(135deg, rgba(20,20,20,0.9), rgba(30,30,30,0.85));
         border: 2px solid rgba(255, 107, 53, 0.5);
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 2rem;
         box-shadow: 0 0 30px rgba(255, 107, 53, 0.2);
+        backdrop-filter: blur(10px);
     }
     
     [data-testid="stChatMessage"] {
-        background: linear-gradient(135deg, rgba(25,25,25,0.9), rgba(35,35,35,0.85));
+        background: linear-gradient(135deg, rgba(25,25,25,0.85), rgba(35,35,35,0.8));
         border: 1px solid rgba(255, 107, 53, 0.2);
         border-radius: 15px;
         padding: 1rem;
         margin: 0.8rem 0;
+        backdrop-filter: blur(5px);
     }
     
     .stButton > button {
         font-family: 'Orbitron', monospace;
         font-weight: 600;
-        background: rgba(255, 107, 53, 0.15);
+        background: rgba(255, 107, 53, 0.2);
         color: #FF6B35;
         border: 2px solid #FF6B35;
         border-radius: 25px;
@@ -168,11 +171,12 @@ CUSTOM_CSS = """
     }
     
     .welcome-banner {
-        background: linear-gradient(135deg, rgba(255,107,53,0.15), rgba(255,140,66,0.1), rgba(0,212,255,0.05));
+        background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,140,66,0.15), rgba(0,212,255,0.1));
         border: 2px solid rgba(255, 107, 53, 0.4);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
     }
     
     .welcome-title {
@@ -199,7 +203,7 @@ CUSTOM_CSS = """
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(255, 107, 53, 0.15);
+        background: rgba(255, 107, 53, 0.2);
         border: 1px solid rgba(255, 107, 53, 0.5);
         border-radius: 20px;
         padding: 0.4rem 1rem;
@@ -217,38 +221,33 @@ CUSTOM_CSS = """
 """.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
 # ============================================================================
-# GEMINI SETUP - Clean approach from Gemini's recommendation
+# OPENAI SETUP
 # ============================================================================
 @st.cache_resource
-def init_gemini():
-    """Initialize Gemini API once and cache it"""
+def get_openai_client():
+    """Initialize OpenAI client"""
     try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
+        api_key = st.secrets.get("OPENAI_API_KEY")
         if not api_key:
             return None
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel('gemini-1.5-flash')
+        return OpenAI(api_key=api_key)
     except Exception as e:
-        st.error(f"Failed to initialize Gemini: {e}")
-        return None
-
-def get_model_with_system_prompt(system_prompt):
-    """Get a model instance with specific system instruction"""
-    try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
-    except Exception:
+        st.error(f"Failed to initialize OpenAI: {e}")
         return None
 
 # ============================================================================
 # AGENT LOGIC
 # ============================================================================
-def route_question(question, model):
+def route_question(question, client):
     """Route question to appropriate agent"""
     try:
-        response = model.generate_content(ROUTER_PROMPT.format(question=question))
-        result = response.text.strip().upper()
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": ROUTER_PROMPT.format(question=question)}],
+            max_tokens=20,
+            temperature=0
+        )
+        result = response.choices[0].message.content.strip().upper()
         
         if "TACTICIAN" in result:
             return Agent.TACTICIAN
@@ -258,29 +257,31 @@ def route_question(question, model):
     except Exception:
         return Agent.HEAD_COACH
 
-def get_agent_response(question, agent, chat_history):
+def get_agent_response(question, agent, chat_history, client):
     """Get response from specific agent"""
     try:
-        model = get_model_with_system_prompt(SYSTEM_PROMPTS[agent])
-        if not model:
-            return "Error: Could not initialize model"
+        # Build messages list
+        messages = [{"role": "system", "content": SYSTEM_PROMPTS[agent]}]
         
-        # Build context from recent history
-        context = ""
+        # Add recent history
         if chat_history:
-            for msg in chat_history[-4:]:  # Last 2 exchanges
-                role = "Coach" if msg["role"] == "user" else "Assistant"
-                # Strip HTML from previous responses
+            for msg in chat_history[-4:]:
+                role = "user" if msg["role"] == "user" else "assistant"
                 content = msg.get("raw_content", msg["content"])
-                context += f"{role}: {content}\n"
+                messages.append({"role": role, "content": content})
         
-        if context:
-            full_prompt = f"Previous conversation:\n{context}\n\nCoach's question: {question}"
-        else:
-            full_prompt = question
+        # Add current question
+        messages.append({"role": "user", "content": question})
         
-        response = model.generate_content(full_prompt)
-        return response.text
+        # Call OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            max_tokens=1000,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -338,7 +339,7 @@ def render_sidebar():
         <div style="text-align:center; padding:1rem;">
             <div style="font-family:'Rajdhani',sans-serif; color:#666; font-size:0.8rem;">
                 Powered by<br>
-                <span style="color:#FF6B35; font-family:'Orbitron',monospace;">GOOGLE GEMINI</span>
+                <span style="color:#FF6B35; font-family:'Orbitron',monospace;">OpenAI GPT</span>
             </div>
         </div>
         ''', unsafe_allow_html=True)
@@ -381,7 +382,7 @@ def render_welcome():
             if st.button("🎯 תרגילי כדרור", use_container_width=True):
                 st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקני נוער"
 
-def render_chat(model):
+def render_chat(client):
     # Display chat history
     for msg in st.session_state.messages:
         if msg["role"] == "user":
@@ -407,12 +408,12 @@ def render_chat(model):
         
         # Route and respond
         with st.spinner("🏀 Analyzing..."):
-            agent = route_question(prompt, model)
+            agent = route_question(prompt, client)
         
         info = AGENT_INFO[agent]
         with st.chat_message("assistant", avatar=info["icon"]):
             with st.spinner(f"Consulting {info['name']}..."):
-                raw_response = get_agent_response(prompt, agent, st.session_state.messages[:-1])
+                raw_response = get_agent_response(prompt, agent, st.session_state.messages[:-1], client)
                 formatted = format_response(raw_response, agent)
             st.markdown(formatted, unsafe_allow_html=True)
         
@@ -435,18 +436,18 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
-    # Initialize Gemini
-    model = init_gemini()
-    if not model:
-        st.error("⚠️ Please configure GEMINI_API_KEY in your Streamlit secrets")
-        st.info("Go to Settings > Secrets and add: GEMINI_API_KEY = \"your-key-here\"")
+    # Initialize OpenAI
+    client = get_openai_client()
+    if not client:
+        st.error("⚠️ Please configure OPENAI_API_KEY in your Streamlit secrets")
+        st.info("Go to Settings > Secrets and add: OPENAI_API_KEY = \"sk-your-key-here\"")
         st.stop()
     
     # Render UI
     render_sidebar()
     render_header()
     render_welcome()
-    render_chat(model)
+    render_chat(client)
 
 if __name__ == "__main__":
     main()

@@ -2,12 +2,14 @@
 """
 HOOPS AI - Basketball Coaching Staff
 Virtual Locker Room with Multi-Agent System
-Powered by OpenAI GPT
+Powered by OpenAI GPT + Supabase
 """
 
 import streamlit as st
 from openai import OpenAI
+from supabase import create_client
 from enum import Enum
+from datetime import datetime
 
 # ============================================================================
 # PAGE CONFIG - Must be first Streamlit command
@@ -24,6 +26,9 @@ st.set_page_config(
 # ============================================================================
 LOGO_URL = "https://i.postimg.cc/DfYpGxMy/Fashion-Bran-Logo.png"
 BACKGROUND_URL = "https://i.postimg.cc/nr6WXxHh/wlm-kdwrsl.jpg"
+
+AGE_GROUPS = ["U10", "U12", "U14", "U16", "U18", "Senior"]
+LEVELS = ["Beginner", "League", "Competitive", "Professional"]
 
 class Agent(Enum):
     HEAD_COACH = "head_coach"
@@ -54,24 +59,44 @@ AGENT_INFO = {
     }
 }
 
-SYSTEM_PROMPTS = {
-    Agent.HEAD_COACH: """You are the Head Coach of a professional basketball coaching staff.
+def get_system_prompt(agent, coach_profile=None):
+    """Generate system prompt with coach profile context"""
+    
+    base_prompts = {
+        Agent.HEAD_COACH: """You are the Head Coach of a professional basketball coaching staff.
 Handle general basketball inquiries, team management, and coordination.
-Be professional, supportive, and helpful.
-IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew or English).""",
+Be professional, supportive, and helpful.""",
 
-    Agent.TACTICIAN: """You are an elite basketball strategist (Euroleague-level).
+        Agent.TACTICIAN: """You are an elite basketball strategist (Euroleague-level).
 Expertise: Spacing, defensive schemes (Switch, Hedge, Drop, ICE), ATOs, SLOBs/BLOBs,
 zone offense/defense, Pick & Roll coverage, rotations.
-Be concise and tactical. Use proper basketball terminology.
-IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew or English).""",
+Be concise and tactical. Use proper basketball terminology.""",
 
-    Agent.SKILLS_COACH: """You are a top Player Development Coach.
+        Agent.SKILLS_COACH: """You are a top Player Development Coach.
 Expertise: Shooting mechanics, ball handling, footwork, finishing at rim.
 Age-appropriate training: Mini-basket (U10), Youth (U12-U14), Juniors (U16-U18), Pros.
-Be encouraging but demanding.
+Be encouraging but demanding."""
+    }
+    
+    prompt = base_prompts[agent]
+    
+    # Add coach profile context if available
+    if coach_profile:
+        prompt += f"""
+
+COACH PROFILE - Adapt your answers accordingly:
+- Coach Name: {coach_profile.get('name', 'Unknown')}
+- Team: {coach_profile.get('team_name', 'Unknown')}
+- Age Group: {coach_profile.get('age_group', 'Unknown')}
+- Level: {coach_profile.get('level', 'Unknown')}
+
+IMPORTANT: Tailor your advice to the {coach_profile.get('age_group', '')} age group and {coach_profile.get('level', '')} level!"""
+    
+    prompt += """
+
 IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew or English)."""
-}
+    
+    return prompt
 
 ROUTER_PROMPT = """Determine which coach should answer this basketball question.
 Rules:
@@ -84,7 +109,7 @@ Question: {question}
 Answer with ONE word only: TACTICIAN, SKILLS_COACH, or HEAD_COACH"""
 
 # ============================================================================
-# CSS STYLING - Background at 50% opacity (more visible)
+# CSS STYLING
 # ============================================================================
 CUSTOM_CSS = """
 <style>
@@ -285,6 +310,52 @@ CUSTOM_CSS = """
         color: #FF6B35;
     }
     
+    .login-container {
+        background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(30,30,30,0.9));
+        border: 2px solid rgba(255, 107, 53, 0.5);
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 500px;
+        margin: 2rem auto;
+        backdrop-filter: blur(10px);
+    }
+    
+    .profile-card {
+        background: rgba(255, 107, 53, 0.1);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+    }
+    
+    .history-item {
+        background: rgba(30, 30, 30, 0.8);
+        border: 1px solid rgba(255, 107, 53, 0.2);
+        border-radius: 10px;
+        padding: 0.8rem;
+        margin: 0.5rem 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .history-item:hover {
+        border-color: #FF6B35;
+        background: rgba(255, 107, 53, 0.1);
+    }
+    
+    /* Form styling */
+    .stTextInput input, .stSelectbox select {
+        background: rgba(30, 30, 30, 0.9) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
+        color: #FFFFFF !important;
+    }
+    
+    .stTextInput input:focus, .stSelectbox select:focus {
+        border-color: #FF6B35 !important;
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.3) !important;
+    }
+    
     ::-webkit-scrollbar {width: 8px;}
     ::-webkit-scrollbar-track {background: #0D0D0D;}
     ::-webkit-scrollbar-thumb {background: linear-gradient(#FF6B35, #FF8C42); border-radius: 4px;}
@@ -292,7 +363,94 @@ CUSTOM_CSS = """
 """.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
 # ============================================================================
-# OPENAI SETUP
+# DATABASE FUNCTIONS
+# ============================================================================
+@st.cache_resource
+def get_supabase_client():
+    """Initialize Supabase client"""
+    try:
+        url = st.secrets.get("SUPABASE_URL")
+        key = st.secrets.get("SUPABASE_KEY")
+        if not url or not key:
+            return None
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"Failed to connect to Supabase: {e}")
+        return None
+
+def get_coach_by_email(supabase, email):
+    """Get coach profile by email"""
+    try:
+        result = supabase.table("coaches").select("*").eq("email", email).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception:
+        return None
+
+def create_coach(supabase, name, email, team_name, age_group, level):
+    """Create new coach profile"""
+    try:
+        result = supabase.table("coaches").insert({
+            "name": name,
+            "email": email,
+            "team_name": team_name,
+            "age_group": age_group,
+            "level": level
+        }).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        st.error(f"Error creating profile: {e}")
+        return None
+
+def get_coach_conversations(supabase, coach_id):
+    """Get all conversations for a coach"""
+    try:
+        result = supabase.table("conversations").select("*").eq("coach_id", coach_id).order("created_at", desc=True).execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def create_conversation(supabase, coach_id, title):
+    """Create new conversation"""
+    try:
+        result = supabase.table("conversations").insert({
+            "coach_id": coach_id,
+            "title": title
+        }).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def save_message(supabase, conversation_id, role, content, agent=None):
+    """Save message to database"""
+    try:
+        supabase.table("messages").insert({
+            "conversation_id": conversation_id,
+            "role": role,
+            "content": content,
+            "agent": agent
+        }).execute()
+    except Exception:
+        pass
+
+def get_conversation_messages(supabase, conversation_id):
+    """Get all messages for a conversation"""
+    try:
+        result = supabase.table("messages").select("*").eq("conversation_id", conversation_id).order("created_at").execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def update_conversation_title(supabase, conversation_id, title):
+    """Update conversation title"""
+    try:
+        supabase.table("conversations").update({"title": title}).eq("id", conversation_id).execute()
+    except Exception:
+        pass
+
+# ============================================================================
+# OPENAI FUNCTIONS
 # ============================================================================
 @st.cache_resource
 def get_openai_client():
@@ -306,9 +464,6 @@ def get_openai_client():
         st.error(f"Failed to initialize OpenAI: {e}")
         return None
 
-# ============================================================================
-# AGENT LOGIC
-# ============================================================================
 def route_question(question, client):
     """Route question to appropriate agent"""
     try:
@@ -328,11 +483,11 @@ def route_question(question, client):
     except Exception:
         return Agent.HEAD_COACH
 
-def get_agent_response(question, agent, chat_history, client):
+def get_agent_response(question, agent, chat_history, client, coach_profile=None):
     """Get response from specific agent"""
     try:
-        # Build messages list
-        messages = [{"role": "system", "content": SYSTEM_PROMPTS[agent]}]
+        system_prompt = get_system_prompt(agent, coach_profile)
+        messages = [{"role": "system", "content": system_prompt}]
         
         # Add recent history
         if chat_history:
@@ -341,10 +496,8 @@ def get_agent_response(question, agent, chat_history, client):
                 content = msg.get("raw_content", msg["content"])
                 messages.append({"role": role, "content": content})
         
-        # Add current question
         messages.append({"role": "user", "content": question})
         
-        # Call OpenAI
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
@@ -374,8 +527,75 @@ def get_agent_from_value(value):
 # ============================================================================
 # UI COMPONENTS
 # ============================================================================
-def render_sidebar():
+def render_login_page(supabase):
+    """Render login/registration page"""
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    
+    st.markdown('''
+    <div class="scoreboard">
+        <div class="hero-title">HOOPS AI</div>
+        <div class="hero-subtitle">Your Personal Assistant Coach</div>
+    </div>
+    ''', unsafe_allow_html=True)
+    
+    st.markdown('''
+    <div class="welcome-banner">
+        <div class="welcome-title">🏀 Welcome to HOOPS AI!</div>
+        <div class="welcome-text">Enter your details to get personalized coaching advice tailored to your team.</div>
+        <div class="welcome-text" style="margin-top:0.5rem; direction:rtl;">הכנס את הפרטים שלך לקבלת ייעוץ מותאם אישית 🇮🇱</div>
+    </div>
+    ''', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        tab1, tab2 = st.tabs(["🔑 Login", "📝 Register"])
+        
+        with tab1:
+            st.markdown("### Welcome Back, Coach!")
+            login_email = st.text_input("Email", key="login_email", placeholder="your@email.com")
+            
+            if st.button("🚀 LOGIN", use_container_width=True, key="login_btn"):
+                if login_email:
+                    coach = get_coach_by_email(supabase, login_email)
+                    if coach:
+                        st.session_state.coach = coach
+                        st.session_state.logged_in = True
+                        st.rerun()
+                    else:
+                        st.error("Coach not found. Please register first.")
+                else:
+                    st.warning("Please enter your email.")
+        
+        with tab2:
+            st.markdown("### Create Your Profile")
+            
+            reg_name = st.text_input("Coach Name", key="reg_name", placeholder="John Smith")
+            reg_email = st.text_input("Email", key="reg_email", placeholder="your@email.com")
+            reg_team = st.text_input("Team Name", key="reg_team", placeholder="Lakers Youth")
+            reg_age = st.selectbox("Age Group", AGE_GROUPS, key="reg_age")
+            reg_level = st.selectbox("Level", LEVELS, key="reg_level")
+            
+            if st.button("🏀 CREATE PROFILE", use_container_width=True, key="register_btn"):
+                if reg_name and reg_email:
+                    # Check if email exists
+                    existing = get_coach_by_email(supabase, reg_email)
+                    if existing:
+                        st.error("Email already registered. Please login.")
+                    else:
+                        coach = create_coach(supabase, reg_name, reg_email, reg_team, reg_age, reg_level)
+                        if coach:
+                            st.session_state.coach = coach
+                            st.session_state.logged_in = True
+                            st.success("Profile created! Redirecting...")
+                            st.rerun()
+                else:
+                    st.warning("Please fill in Name and Email.")
+
+def render_sidebar(supabase):
+    """Render sidebar with logo, profile, history"""
     with st.sidebar:
+        # Logo
         st.markdown(f'''
         <div style="text-align:center; padding:1rem;">
             <img src="{LOGO_URL}" style="width:180px;">
@@ -383,6 +603,61 @@ def render_sidebar():
         <div class="sidebar-divider"></div>
         ''', unsafe_allow_html=True)
         
+        # Coach Profile
+        coach = st.session_state.get('coach', {})
+        st.markdown(f'''
+        <div class="profile-card">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.8rem; margin-bottom:0.5rem;">👤 COACH PROFILE</div>
+            <div style="font-weight:600; font-size:1.1rem;">{coach.get('name', 'Unknown')}</div>
+            <div style="color:#888; font-size:0.85rem;">{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # New Chat Button
+        if st.button("➕ NEW CHAT", use_container_width=True):
+            st.session_state.current_conversation = None
+            st.session_state.messages = []
+            st.rerun()
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # Chat History
+        st.markdown('''
+        <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">
+            📜 CHAT HISTORY
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        conversations = get_coach_conversations(supabase, coach.get('id'))
+        
+        if conversations:
+            for conv in conversations[:10]:  # Show last 10
+                title = conv.get('title', 'New Chat')[:30]
+                if len(conv.get('title', '')) > 30:
+                    title += "..."
+                
+                if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
+                    st.session_state.current_conversation = conv
+                    # Load messages
+                    msgs = get_conversation_messages(supabase, conv['id'])
+                    st.session_state.messages = [
+                        {
+                            "role": m['role'],
+                            "content": m['content'],
+                            "raw_content": m['content'].split('\n\n', 1)[-1] if '\n\n' in m['content'] else m['content'],
+                            "agent": m.get('agent')
+                        }
+                        for m in msgs
+                    ]
+                    st.rerun()
+        else:
+            st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # Coaching Staff
         st.markdown('''
         <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">
             👥 COACHING STAFF
@@ -401,8 +676,12 @@ def render_sidebar():
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        if st.button("🗑️ CLEAR COURT", use_container_width=True):
+        # Logout
+        if st.button("🚪 LOGOUT", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.coach = None
             st.session_state.messages = []
+            st.session_state.current_conversation = None
             st.rerun()
         
         st.markdown('''
@@ -416,6 +695,7 @@ def render_sidebar():
         ''', unsafe_allow_html=True)
 
 def render_header():
+    """Render main header"""
     st.markdown('''
     <div class="scoreboard">
         <div class="hero-title">HOOPS AI</div>
@@ -424,12 +704,14 @@ def render_header():
     ''', unsafe_allow_html=True)
 
 def render_welcome():
+    """Render welcome banner for new chats"""
     if not st.session_state.messages:
-        st.markdown('''
+        coach = st.session_state.get('coach', {})
+        st.markdown(f'''
         <div class="welcome-banner">
-            <div class="welcome-title">👋 WELCOME, COACH!</div>
+            <div class="welcome-title">👋 Hey Coach {coach.get('name', '').split()[0] if coach.get('name') else ''}!</div>
             <div class="welcome-text">Your AI coaching staff is ready. Ask anything about basketball strategy, player development, or team management.</div>
-            <div class="welcome-text" style="margin-top:0.5rem; direction:rtl;">ברוכים הבאים! אפשר לשאול בעברית או באנגלית 🇮🇱</div>
+            <div class="welcome-text" style="margin-top:0.5rem;">Tailored for: <strong style="color:#FF6B35;">{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}</strong></div>
         </div>
         ''', unsafe_allow_html=True)
         
@@ -445,12 +727,15 @@ def render_welcome():
                 st.session_state.pending_prompt = "What are the best strategies to beat a 2-3 zone defense?"
         with col2:
             if st.button("💪 SHOOTING DRILLS", use_container_width=True):
-                st.session_state.pending_prompt = "What are good shooting drills for U14 players?"
+                st.session_state.pending_prompt = "What are good shooting drills for my team?"
         with col3:
             if st.button("🎯 תרגילי כדרור", use_container_width=True):
-                st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקני נוער"
+                st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקנים שלי"
 
-def render_chat(client):
+def render_chat(client, supabase):
+    """Render chat interface"""
+    coach = st.session_state.get('coach', {})
+    
     # Display chat history
     for msg in st.session_state.messages:
         if msg["role"] == "user":
@@ -469,10 +754,19 @@ def render_chat(client):
         prompt = st.chat_input("Ask your coaching question... | שאל את שאלתך...")
     
     if prompt:
+        # Create conversation if needed
+        if not st.session_state.get('current_conversation'):
+            conv = create_conversation(supabase, coach.get('id'), prompt[:50])
+            st.session_state.current_conversation = conv
+        
         # Show user message
         with st.chat_message("user", avatar="👤"):
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Save user message
+        if st.session_state.current_conversation:
+            save_message(supabase, st.session_state.current_conversation['id'], "user", prompt)
         
         # Route and respond
         with st.spinner("🏀 Analyzing..."):
@@ -481,9 +775,18 @@ def render_chat(client):
         info = AGENT_INFO[agent]
         with st.chat_message("assistant", avatar=info["icon"]):
             with st.spinner(f"Consulting {info['name']}..."):
-                raw_response = get_agent_response(prompt, agent, st.session_state.messages[:-1], client)
+                raw_response = get_agent_response(
+                    prompt, agent, 
+                    st.session_state.messages[:-1], 
+                    client, 
+                    coach  # Pass coach profile!
+                )
                 formatted = format_response(raw_response, agent)
             st.markdown(formatted, unsafe_allow_html=True)
+        
+        # Save assistant message
+        if st.session_state.current_conversation:
+            save_message(supabase, st.session_state.current_conversation['id'], "assistant", formatted, agent.value)
         
         st.session_state.messages.append({
             "role": "assistant",
@@ -497,25 +800,35 @@ def render_chat(client):
 # MAIN
 # ============================================================================
 def main():
-    # Apply CSS
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    
     # Initialize session state
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "current_conversation" not in st.session_state:
+        st.session_state.current_conversation = None
     
-    # Initialize OpenAI
-    client = get_openai_client()
-    if not client:
-        st.error("⚠️ Please configure OPENAI_API_KEY in your Streamlit secrets")
-        st.info("Go to Settings > Secrets and add: OPENAI_API_KEY = \"sk-your-key-here\"")
+    # Initialize clients
+    supabase = get_supabase_client()
+    openai_client = get_openai_client()
+    
+    if not supabase:
+        st.error("⚠️ Database connection failed. Check SUPABASE_URL and SUPABASE_KEY in secrets.")
         st.stop()
     
-    # Render UI
-    render_sidebar()
-    render_header()
-    render_welcome()
-    render_chat(client)
+    if not openai_client:
+        st.error("⚠️ OpenAI connection failed. Check OPENAI_API_KEY in secrets.")
+        st.stop()
+    
+    # Show login or main app
+    if not st.session_state.logged_in:
+        render_login_page(supabase)
+    else:
+        st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+        render_sidebar(supabase)
+        render_header()
+        render_welcome()
+        render_chat(openai_client, supabase)
 
 if __name__ == "__main__":
     main()

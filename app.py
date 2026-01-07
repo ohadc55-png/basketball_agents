@@ -13,7 +13,7 @@ from enum import Enum
 # PAGE CONFIG - Must be first Streamlit command
 # ============================================================================
 st.set_page_config(
-    page_title="HOOPS AI - Basketball Coaching Staff",
+    page_title="HOOPS AI - Your Personal Assistant Coach",
     page_icon="🏀",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -164,32 +164,39 @@ CUSTOM_CSS = """
     }
     
     [data-testid="stChatInput"] {
-        background: linear-gradient(135deg, rgba(20,20,20,0.9), rgba(30,30,30,0.85)) !important;
-        border: 2px solid rgba(255, 107, 53, 0.5) !important;
-        border-radius: 25px !important;
-        padding: 0.5rem !important;
-        backdrop-filter: blur(10px);
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        border: none !important;
+        border-radius: 30px !important;
+        padding: 0.8rem 1rem !important;
     }
     
     [data-testid="stChatInput"] textarea {
-        color: #FFFFFF !important;
+        color: #000000 !important;
         font-family: 'Rajdhani', sans-serif !important;
         font-size: 1rem !important;
-        background: transparent !important;
+        background: #FFFFFF !important;
+        border-radius: 20px !important;
+        padding: 0.5rem 1rem !important;
     }
     
     [data-testid="stChatInput"] textarea::placeholder {
-        color: rgba(255, 107, 53, 0.6) !important;
+        color: #666666 !important;
     }
     
     [data-testid="stChatInput"] button {
-        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        background: #000000 !important;
         border-radius: 50% !important;
-        color: #000 !important;
+        color: #FF6B35 !important;
     }
     
     [data-testid="stChatInput"] button:hover {
-        box-shadow: 0 0 20px rgba(255, 107, 53, 0.6) !important;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.6) !important;
+    }
+    
+    [data-testid="stBottom"] {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        padding: 1rem !important;
+        border-top: 2px solid rgba(255, 107, 53, 0.8) !important;
     }
     
     .stButton > button {
@@ -385,13 +392,10 @@ def render_sidebar():
         ''', unsafe_allow_html=True)
 
 def render_header():
-    st.markdown(f'''
+    st.markdown('''
     <div class="scoreboard">
-        <div style="text-align:center;">
-            <img src="{LOGO_URL}" style="width:150px; margin-bottom:1rem;">
-        </div>
-        <div class="hero-title">BASKETBALL AI</div>
-        <div class="hero-subtitle">Virtual Locker Room</div>
+        <div class="hero-title">HOOPS AI</div>
+        <div class="hero-subtitle">Your Personal Assistant Coach</div>
     </div>
     ''', unsafe_allow_html=True)
 

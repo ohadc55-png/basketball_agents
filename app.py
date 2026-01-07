@@ -152,6 +152,46 @@ CUSTOM_CSS = """
         backdrop-filter: blur(5px);
     }
     
+    [data-testid="stChatMessage"] p,
+    [data-testid="stChatMessage"] li,
+    [data-testid="stChatMessage"] span,
+    [data-testid="stChatMessage"] div {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stChatMessage"] strong {
+        color: #FF6B35 !important;
+    }
+    
+    [data-testid="stChatInput"] {
+        background: linear-gradient(135deg, rgba(20,20,20,0.9), rgba(30,30,30,0.85)) !important;
+        border: 2px solid rgba(255, 107, 53, 0.5) !important;
+        border-radius: 25px !important;
+        padding: 0.5rem !important;
+        backdrop-filter: blur(10px);
+    }
+    
+    [data-testid="stChatInput"] textarea {
+        color: #FFFFFF !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-size: 1rem !important;
+        background: transparent !important;
+    }
+    
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: rgba(255, 107, 53, 0.6) !important;
+    }
+    
+    [data-testid="stChatInput"] button {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        border-radius: 50% !important;
+        color: #000 !important;
+    }
+    
+    [data-testid="stChatInput"] button:hover {
+        box-shadow: 0 0 20px rgba(255, 107, 53, 0.6) !important;
+    }
+    
     .stButton > button {
         font-family: 'Orbitron', monospace;
         font-weight: 600;

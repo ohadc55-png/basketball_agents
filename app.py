@@ -8,11 +8,12 @@ Built with Streamlit and Google Gemini API
 import streamlit as st
 import google.generativeai as genai
 from enum import Enum
-import base64
 
 # ============================================================================
 # CONFIGURATION & CONSTANTS
 # ============================================================================
+
+LOGO_URL = "https://i.postimg.cc/DfYpGxMy/Fashion-Bran-Logo.png"
 
 class Agent(Enum):
     HEAD_ASSISTANT = "head_assistant"
@@ -127,44 +128,33 @@ Your routing decision:"""
 def get_custom_css():
     return """
 <style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Teko:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
     
-    /* Root Variables */
     :root {
         --primary-orange: #FF6B35;
         --bright-orange: #FF8C42;
         --dark-bg: #0D0D0D;
-        --darker-bg: #050505;
         --card-bg: rgba(20, 20, 20, 0.95);
-        --glass-bg: rgba(30, 30, 30, 0.85);
         --neon-blue: #00D4FF;
         --neon-green: #00FF87;
-        --gray-dark: #1A1A1A;
-        --gray-medium: #2D2D2D;
         --text-primary: #FFFFFF;
         --text-secondary: #B0B0B0;
     }
     
-    /* Main App Background */
     .stApp {
         background: linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
-        background-attachment: fixed;
     }
     
-    /* Hide Streamlit Branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Main Container */
     .main .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
         max-width: 1200px;
     }
     
-    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
         border-right: 1px solid rgba(255, 107, 53, 0.3);
@@ -174,10 +164,9 @@ def get_custom_css():
         color: #FFFFFF;
     }
     
-    /* Hero Title */
     .hero-title {
         font-family: 'Orbitron', monospace;
-        font-size: 2.8rem;
+        font-size: 2.5rem;
         font-weight: 900;
         text-align: center;
         background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFFFFF 100%);
@@ -185,9 +174,8 @@ def get_custom_css():
         -webkit-text-fill-color: transparent;
         background-clip: text;
         text-transform: uppercase;
-        letter-spacing: 4px;
+        letter-spacing: 3px;
         margin-bottom: 0.5rem;
-        text-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
         animation: glow 2s ease-in-out infinite alternate;
     }
     
@@ -198,26 +186,22 @@ def get_custom_css():
     
     .hero-subtitle {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         text-align: center;
         color: #B0B0B0;
-        letter-spacing: 8px;
+        letter-spacing: 6px;
         text-transform: uppercase;
         margin-bottom: 2rem;
     }
     
-    /* Scoreboard Style Header */
     .scoreboard {
         background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(30, 30, 30, 0.9) 100%);
         border: 2px solid rgba(255, 107, 53, 0.5);
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 2rem;
-        box-shadow: 
-            0 0 30px rgba(255, 107, 53, 0.2),
-            inset 0 0 60px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 30px rgba(255, 107, 53, 0.2);
         position: relative;
-        overflow: hidden;
     }
     
     .scoreboard::before {
@@ -230,102 +214,21 @@ def get_custom_css():
         background: linear-gradient(90deg, transparent, #FF6B35, transparent);
     }
     
-    /* Agent Cards */
-    .agent-card {
-        background: linear-gradient(145deg, rgba(25, 25, 25, 0.95) 0%, rgba(15, 15, 15, 0.98) 100%);
-        border: 1px solid rgba(255, 107, 53, 0.3);
-        border-radius: 12px;
-        padding: 1.2rem;
-        margin: 0.8rem 0;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .agent-card:hover {
-        border-color: #FF6B35;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 40px rgba(255, 107, 53, 0.2);
-    }
-    
-    .agent-card::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--agent-color, #FF6B35), transparent);
-    }
-    
-    .agent-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .agent-name {
-        font-family: 'Orbitron', monospace;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #FF6B35;
-        margin: 0;
-        letter-spacing: 2px;
-    }
-    
-    .agent-title {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 0.85rem;
-        color: #888;
-        margin: 0.2rem 0;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .agent-specialty {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 0.8rem;
-        color: #666;
-    }
-    
-    /* Chat Messages */
     [data-testid="stChatMessage"] {
         background: linear-gradient(135deg, rgba(25, 25, 25, 0.9) 0%, rgba(35, 35, 35, 0.85) 100%);
         border: 1px solid rgba(255, 107, 53, 0.2);
         border-radius: 15px;
         padding: 1rem;
         margin: 0.8rem 0;
-        backdrop-filter: blur(10px);
-    }
-    
-    /* User Message */
-    [data-testid="stChatMessage"][data-testid*="user"] {
-        border-left: 3px solid #FF6B35;
-    }
-    
-    /* Assistant Message */
-    [data-testid="stChatMessage"][data-testid*="assistant"] {
-        border-left: 3px solid #00D4FF;
-    }
-    
-    /* Chat Input */
-    [data-testid="stChatInput"] {
-        border-radius: 25px;
-        background: rgba(20, 20, 20, 0.95);
-        border: 2px solid rgba(255, 107, 53, 0.4);
-    }
-    
-    [data-testid="stChatInput"]:focus-within {
-        border-color: #FF6B35;
-        box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
     }
     
     [data-testid="stChatInput"] textarea {
         color: #FFFFFF !important;
         font-family: 'Rajdhani', sans-serif;
         font-size: 1rem;
+        background: rgba(20, 20, 20, 0.9) !important;
     }
     
-    /* Buttons */
     .stButton > button {
         font-family: 'Orbitron', monospace;
         font-weight: 600;
@@ -346,24 +249,6 @@ def get_custom_css():
         transform: translateY(-2px);
     }
     
-    /* Quick Action Buttons */
-    .quick-btn {
-        background: linear-gradient(135deg, rgba(30, 30, 30, 0.9) 0%, rgba(20, 20, 20, 0.95) 100%);
-        border: 1px solid rgba(255, 107, 53, 0.4);
-        border-radius: 12px;
-        padding: 1rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .quick-btn:hover {
-        border-color: #FF6B35;
-        background: linear-gradient(135deg, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0.1) 100%);
-        box-shadow: 0 5px 25px rgba(255, 107, 53, 0.2);
-    }
-    
-    /* Welcome Banner */
     .welcome-banner {
         background: linear-gradient(135deg, rgba(255, 107, 53, 0.15) 0%, rgba(255, 140, 66, 0.1) 50%, rgba(0, 212, 255, 0.05) 100%);
         border: 2px solid rgba(255, 107, 53, 0.4);
@@ -385,7 +270,7 @@ def get_custom_css():
     
     .welcome-title {
         font-family: 'Orbitron', monospace;
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: 700;
         color: #FFFFFF;
         margin-bottom: 0.5rem;
@@ -397,52 +282,12 @@ def get_custom_css():
         color: #B0B0B0;
     }
     
-    /* Stats Display */
-    .stat-box {
-        background: rgba(20, 20, 20, 0.9);
-        border: 1px solid rgba(255, 107, 53, 0.3);
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-    }
-    
-    .stat-number {
-        font-family: 'Orbitron', monospace;
-        font-size: 2rem;
-        font-weight: 900;
-        color: #FF6B35;
-    }
-    
-    .stat-label {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 0.8rem;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-    
-    /* Sidebar Elements */
-    .sidebar-logo {
-        text-align: center;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    .sidebar-logo-text {
-        font-family: 'Orbitron', monospace;
-        font-size: 1.5rem;
-        font-weight: 900;
-        color: #FF6B35;
-        text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
-    }
-    
     .sidebar-divider {
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.5), transparent);
         margin: 1.5rem 0;
     }
     
-    /* Expander Styling */
     [data-testid="stExpander"] {
         background: rgba(20, 20, 20, 0.8);
         border: 1px solid rgba(255, 107, 53, 0.3);
@@ -450,25 +295,6 @@ def get_custom_css():
         margin: 0.5rem 0;
     }
     
-    [data-testid="stExpander"] summary {
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 600;
-        color: #FFFFFF;
-    }
-    
-    /* Select Box */
-    [data-testid="stSelectbox"] {
-        font-family: 'Rajdhani', sans-serif;
-    }
-    
-    [data-testid="stSelectbox"] > div > div {
-        background: rgba(20, 20, 20, 0.9);
-        border: 1px solid rgba(255, 107, 53, 0.4);
-        border-radius: 10px;
-        color: #FFFFFF;
-    }
-    
-    /* Response Badge */
     .response-badge {
         display: inline-flex;
         align-items: center;
@@ -484,22 +310,6 @@ def get_custom_css():
         color: #FF6B35;
     }
     
-    /* Court Pattern Overlay */
-    .court-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        opacity: 0.03;
-        background-image: 
-            radial-gradient(circle at 50% 50%, #FF6B35 1px, transparent 1px);
-        background-size: 50px 50px;
-        z-index: -1;
-    }
-    
-    /* Scrollbar */
     ::-webkit-scrollbar {
         width: 8px;
     }
@@ -512,32 +322,6 @@ def get_custom_css():
         background: linear-gradient(180deg, #FF6B35, #FF8C42);
         border-radius: 4px;
     }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #FF6B35;
-    }
-    
-    /* Loading Animation */
-    .loading-basketball {
-        display: inline-block;
-        animation: bounce 0.6s infinite alternate;
-    }
-    
-    @keyframes bounce {
-        from { transform: translateY(0); }
-        to { transform: translateY(-10px); }
-    }
-    
-    /* Pulse Effect */
-    .pulse {
-        animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-    }
 </style>
 """
 
@@ -547,7 +331,6 @@ def get_custom_css():
 # ============================================================================
 
 def get_agent_from_value(agent_value):
-    """Convert agent value (string or Agent) to Agent enum safely."""
     if isinstance(agent_value, Agent):
         return agent_value
     if isinstance(agent_value, str):
@@ -558,7 +341,6 @@ def get_agent_from_value(agent_value):
 
 
 def init_gemini():
-    """Initialize the Gemini API with the secret key."""
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
@@ -574,19 +356,16 @@ def init_gemini():
 
 
 def get_available_models():
-    """Return available Gemini models for selection."""
     return {
-        "Gemini 2.0 Flash-Lite": "gemini-2.0-flash-lite",
+        "Gemini 1.5 Flash (Free)": "gemini-1.5-flash",
     }
 
 
 def route_question(question, model_name):
-    """Use the Head Assistant to route the question to the appropriate agent."""
     try:
         model = genai.GenerativeModel(model_name)
         prompt = ROUTER_PROMPT.format(question=question)
         response = model.generate_content(prompt)
-        
         result = response.text.strip().upper()
         
         if "TACTICIAN" in result:
@@ -595,13 +374,11 @@ def route_question(question, model_name):
             return Agent.SKILLS_COACH
         else:
             return Agent.HEAD_ASSISTANT
-            
     except Exception as e:
         return Agent.HEAD_ASSISTANT
 
 
 def get_agent_response(question, agent, model_name, chat_history):
-    """Get a response from the specified agent."""
     try:
         model = genai.GenerativeModel(
             model_name,
@@ -627,13 +404,11 @@ Provide a helpful, professional response:"""
         
         response = model.generate_content(full_prompt)
         return response.text
-        
     except Exception as e:
         return f"Error: {str(e)}"
 
 
 def format_agent_response(response, agent):
-    """Format the response with styled agent badge."""
     info = AGENT_INFO[agent]
     badge_html = f"""<div class="response-badge">
         <span>{info['icon']}</span>
@@ -647,14 +422,11 @@ def format_agent_response(response, agent):
 # ============================================================================
 
 def render_sidebar():
-    """Render the futuristic sidebar."""
     with st.sidebar:
-        # Logo Section
-        st.markdown("""
-        <div class="sidebar-logo">
-            <div style="font-size: 4rem; margin-bottom: 0.5rem;">🏀</div>
-            <div class="sidebar-logo-text">HOOPS AI</div>
-            <div style="font-family: 'Rajdhani', sans-serif; color: #888; font-size: 0.9rem; letter-spacing: 3px;">COACHING SYSTEM</div>
+        # Logo
+        st.markdown(f"""
+        <div style="text-align: center; padding: 1rem;">
+            <img src="{LOGO_URL}" style="width: 180px; margin-bottom: 0.5rem;">
         </div>
         <div class="sidebar-divider"></div>
         """, unsafe_allow_html=True)
@@ -677,14 +449,13 @@ def render_sidebar():
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Coaching Staff Section
+        # Coaching Staff
         st.markdown("""
         <div style="font-family: 'Orbitron', monospace; color: #FF6B35; font-size: 0.9rem; margin-bottom: 1rem; letter-spacing: 2px;">
             👥 COACHING STAFF
         </div>
         """, unsafe_allow_html=True)
         
-        # Agent Cards
         for agent in Agent:
             info = AGENT_INFO[agent]
             with st.expander(f"{info['icon']} {info['name']}", expanded=False):
@@ -697,12 +468,10 @@ def render_sidebar():
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Clear Chat Button
         if st.button("🗑️ CLEAR COURT", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
         
-        # Footer
         st.markdown("""
         <div class="sidebar-divider"></div>
         <div style="text-align: center; padding: 1rem;">
@@ -715,18 +484,18 @@ def render_sidebar():
 
 
 def render_header():
-    """Render the main header."""
-    st.markdown("""
-    <div class="court-overlay"></div>
+    st.markdown(f"""
     <div class="scoreboard">
-        <div class="hero-title">🏀 BASKETBALL AI</div>
+        <div style="text-align: center;">
+            <img src="{LOGO_URL}" style="width: 150px; margin-bottom: 1rem;">
+        </div>
+        <div class="hero-title">BASKETBALL AI</div>
         <div class="hero-subtitle">Virtual Locker Room</div>
     </div>
     """, unsafe_allow_html=True)
 
 
 def render_welcome_banner():
-    """Render welcome section with quick actions."""
     if len(st.session_state.messages) == 0:
         st.markdown("""
         <div class="welcome-banner">
@@ -736,7 +505,6 @@ def render_welcome_banner():
         </div>
         """, unsafe_allow_html=True)
         
-        # Quick Action Buttons
         st.markdown("""
         <div style="font-family: 'Orbitron', monospace; color: #FF6B35; font-size: 0.9rem; margin: 1.5rem 0 1rem 0; letter-spacing: 2px;">
             ⚡ QUICK PLAYS
@@ -760,7 +528,6 @@ def render_welcome_banner():
                 st.session_state.starter_prompt = "תן לי תרגילי כדרור מתקדמים לשחקני נוער"
                 st.rerun()
         
-        # Handle starter prompts
         if "starter_prompt" in st.session_state:
             prompt = st.session_state.starter_prompt
             del st.session_state.starter_prompt
@@ -780,8 +547,6 @@ def render_welcome_banner():
 
 
 def render_chat_interface():
-    """Render the main chat interface."""
-    # Display chat messages
     for message in st.session_state.messages:
         if message["role"] == "user":
             with st.chat_message("user", avatar="👤"):
@@ -792,7 +557,6 @@ def render_chat_interface():
             with st.chat_message("assistant", avatar=info["icon"]):
                 st.markdown(message["content"], unsafe_allow_html=True)
     
-    # Chat input
     if prompt := st.chat_input("Ask your coaching question... | שאל את שאלתך..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         
@@ -827,28 +591,23 @@ def render_chat_interface():
 # ============================================================================
 
 def main():
-    """Main application entry point."""
     st.set_page_config(
-        page_title="Basketball AI - Coaching Staff",
+        page_title="HOOPS AI - Basketball Coaching Staff",
         page_icon="🏀",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    # Inject Custom CSS
     st.markdown(get_custom_css(), unsafe_allow_html=True)
     
-    # Initialize session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "model" not in st.session_state:
-        st.session_state.model = "gemini-2.0-flash-lite"
+        st.session_state.model = "gemini-1.5-flash"
     
-    # Initialize Gemini
     if not init_gemini():
         st.stop()
     
-    # Render UI
     render_sidebar()
     render_header()
     render_welcome_banner()

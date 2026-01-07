@@ -163,10 +163,31 @@ IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew o
 
 ROUTER_PROMPT = """Determine which coach should answer this basketball question.
 
-Rules:
+AGENTS:
 - TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs, offensive/defensive systems
 - SKILLS_COACH: basketball drills, shooting, dribbling, footwork, player skill development
-- NUTRITIONIST: food, diet, meals, nutrition, eating, hydration, supplements, weight management
+- NUTRITIONIST: food, diet, meals, nutrition, eating, hydration, supplements, weight management, meal plans
+- STRENGTH_COACH: gym, strength, conditioning, fitness, weights, jumping, speed, agility, physical training, workout programs, periodization
+- ASSISTANT_COACH: general questions, team management, motivation, scheduling, or anything that doesn't fit above
+
+CONTEXT RULES:
+- If the user is providing data/answers requested by the previous agent (like age, weight, height, player details), STAY with the SAME agent
+- If the user is asking a NEW question on a DIFFERENT topic, switch to the appropriate agent
+- Short responses with numbers/data are usually CONTINUATIONS of the previous conversation
+
+Previous agent: {previous_agent}
+Previous message from agent: {previous_message}
+User's new message: {question}
+
+Answer with ONE word only: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, or ASSISTANT_COACH"""
+
+
+ROUTER_PROMPT_NO_CONTEXT = """Determine which coach should answer this basketball question.
+
+AGENTS:
+- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs, offensive/defensive systems
+- SKILLS_COACH: basketball drills, shooting, dribbling, footwork, player skill development
+- NUTRITIONIST: food, diet, meals, nutrition, eating, hydration, supplements, weight management, meal plans
 - STRENGTH_COACH: gym, strength, conditioning, fitness, weights, jumping, speed, agility, physical training, workout programs, periodization
 - ASSISTANT_COACH: general questions, team management, motivation, scheduling, or anything that doesn't fit above
 
@@ -530,12 +551,34 @@ def get_openai_client():
         st.error(f"Failed to initialize OpenAI: {e}")
         return None
 
-def route_question(question, client):
-    """Route question to appropriate agent"""
+def route_question(question, client, chat_history=None):
+    """Route question to appropriate agent with context awareness"""
     try:
+        # Check if we have previous context
+        previous_agent = None
+        previous_message = None
+        
+        if chat_history and len(chat_history) >= 1:
+            # Find the last assistant message
+            for msg in reversed(chat_history):
+                if msg.get("role") == "assistant" and msg.get("agent"):
+                    previous_agent = msg.get("agent")
+                    previous_message = msg.get("raw_content", msg.get("content", ""))[:200]  # Limit length
+                    break
+        
+        # Use context-aware prompt if we have history
+        if previous_agent and previous_message:
+            prompt = ROUTER_PROMPT.format(
+                previous_agent=previous_agent.upper().replace("_", " "),
+                previous_message=previous_message,
+                question=question
+            )
+        else:
+            prompt = ROUTER_PROMPT_NO_CONTEXT.format(question=question)
+        
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": ROUTER_PROMPT.format(question=question)}],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=20,
             temperature=0
         )
@@ -845,7 +888,7 @@ def render_chat(client, supabase):
         
         # Route and respond
         with st.spinner("🏀 Analyzing..."):
-            agent = route_question(prompt, client)
+            agent = route_question(prompt, client, st.session_state.messages[:-1])
         
         info = AGENT_INFO[agent]
         with st.chat_message("assistant", avatar=info["icon"]):

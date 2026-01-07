@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 """
-"""
-🏀 Basketball Coaching Staff - Virtual Locker Room
+Basketball Coaching Staff - Virtual Locker Room
 A multi-agent AI application for basketball coaches
-Built with Streamlit & Google Gemini API
+Built with Streamlit and Google Gemini API
 """
 
 import streamlit as st
@@ -112,7 +112,7 @@ Your routing decision:"""
 # HELPER FUNCTIONS
 # ============================================================================
 
-def get_agent_from_value(agent_value) -> Agent:
+def get_agent_from_value(agent_value):
     """Convert agent value (string or Agent) to Agent enum safely."""
     if isinstance(agent_value, Agent):
         return agent_value
@@ -120,7 +120,7 @@ def get_agent_from_value(agent_value) -> Agent:
         for agent in Agent:
             if agent.value == agent_value or agent.name == agent_value:
                 return agent
-    return Agent.HEAD_ASSISTANT  # Default fallback
+    return Agent.HEAD_ASSISTANT
 
 
 def init_gemini():
@@ -130,7 +130,7 @@ def init_gemini():
         genai.configure(api_key=api_key)
         return True
     except KeyError:
-        st.error("⚠️ API Key not found! Please configure GEMINI_API_KEY in your secrets.")
+        st.error("API Key not found! Please configure GEMINI_API_KEY in your secrets.")
         st.info("""
         **For local development:**
         Create `.streamlit/secrets.toml` with:
@@ -151,7 +151,7 @@ def get_available_models():
     }
 
 
-def route_question(question: str, model_name: str) -> Agent:
+def route_question(question, model_name):
     """Use the Head Assistant to route the question to the appropriate agent."""
     try:
         model = genai.GenerativeModel(model_name)
@@ -172,7 +172,7 @@ def route_question(question: str, model_name: str) -> Agent:
         return Agent.HEAD_ASSISTANT
 
 
-def get_agent_response(question: str, agent: Agent, model_name: str, chat_history: list) -> str:
+def get_agent_response(question, agent, model_name, chat_history):
     """Get a response from the specified agent."""
     try:
         model = genai.GenerativeModel(
@@ -183,7 +183,7 @@ def get_agent_response(question: str, agent: Agent, model_name: str, chat_histor
         # Build conversation history for context
         history_context = ""
         if chat_history:
-            recent_history = chat_history[-6:]  # Last 3 exchanges
+            recent_history = chat_history[-6:]
             for msg in recent_history:
                 role = "Coach" if msg["role"] == "user" else "Assistant"
                 history_context += f"{role}: {msg['content']}\n"
@@ -203,10 +203,10 @@ Provide a helpful, professional response:"""
         return response.text
         
     except Exception as e:
-        return f"❌ Error generating response: {str(e)}"
+        return f"Error generating response: {str(e)}"
 
 
-def format_agent_response(response: str, agent: Agent) -> str:
+def format_agent_response(response, agent):
     """Format the response with the agent's badge."""
     badge = AGENT_BADGES[agent]
     return f"{badge}\n\n{response}"
@@ -219,12 +219,11 @@ def format_agent_response(response: str, agent: Agent) -> str:
 def render_sidebar():
     """Render the sidebar with branding and settings."""
     with st.sidebar:
-        st.image("https://img.icons8.com/emoji/96/basketball-emoji.png", width=80)
         st.title("🏀 Virtual Locker Room")
         st.markdown("---")
         
         # Model selection
-        st.subheader("⚙️ Settings")
+        st.subheader("Settings")
         models = get_available_models()
         selected_model_name = st.selectbox(
             "Select AI Model",
@@ -237,7 +236,7 @@ def render_sidebar():
         st.markdown("---")
         
         # Agent info
-        st.subheader("👥 Your Coaching Staff")
+        st.subheader("Your Coaching Staff")
         
         with st.expander("🎯 Head Assistant", expanded=False):
             st.markdown("""
@@ -250,10 +249,10 @@ def render_sidebar():
         with st.expander("📋 The Tactician", expanded=False):
             st.markdown("""
             **Role:** Strategic Expert
-            - Plays & X's and O's
+            - Plays and X's and O's
             - Defensive schemes
             - Game management
-            - ATOs & set plays
+            - ATOs and set plays
             """)
         
         with st.expander("💪 Skills Coach", expanded=False):
@@ -268,12 +267,12 @@ def render_sidebar():
         st.markdown("---")
         
         # Clear chat button
-        if st.button("🗑️ Clear Conversation", use_container_width=True):
+        if st.button("Clear Conversation", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
         
         st.markdown("---")
-        st.caption("Built with ❤️ for basketball coaches")
+        st.caption("Built for basketball coaches")
         st.caption("Powered by Google Gemini AI")
 
 
@@ -289,7 +288,6 @@ def render_chat_interface():
             with st.chat_message("user", avatar="👤"):
                 st.markdown(message["content"])
         else:
-            # Safely get agent - handle both string and Enum
             agent = get_agent_from_value(message.get("agent", Agent.HEAD_ASSISTANT))
             with st.chat_message("assistant", avatar=AGENT_AVATARS[agent]):
                 st.markdown(message["content"])
@@ -303,7 +301,7 @@ def render_chat_interface():
             st.markdown(prompt)
         
         # Route the question
-        with st.spinner("🤔 Analyzing your question..."):
+        with st.spinner("Analyzing your question..."):
             agent = route_question(prompt, st.session_state.model)
         
         # Get response from the appropriate agent
@@ -313,17 +311,17 @@ def render_chat_interface():
                     prompt, 
                     agent, 
                     st.session_state.model,
-                    st.session_state.messages[:-1]  # Exclude current message
+                    st.session_state.messages[:-1]
                 )
                 formatted_response = format_agent_response(response, agent)
             
             st.markdown(formatted_response)
         
-        # Save assistant message with agent VALUE (string) for JSON serialization
+        # Save assistant message
         st.session_state.messages.append({
             "role": "assistant",
             "content": formatted_response,
-            "agent": agent.value  # Store as string value
+            "agent": agent.value
         })
 
 
@@ -333,7 +331,7 @@ def render_welcome_banner():
         st.markdown("""
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-            <h3 style="color: white; margin: 0;">👋 Welcome, Coach!</h3>
+            <h3 style="color: white; margin: 0;">Welcome, Coach!</h3>
             <p style="color: rgba(255,255,255,0.9); margin-top: 10px;">
                 Your AI coaching staff is ready. Try asking:
             </p>
@@ -343,7 +341,7 @@ def render_welcome_banner():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("📋 How do I beat a 2-3 zone?", use_container_width=True):
+            if st.button("📋 How to beat 2-3 zone?", use_container_width=True):
                 st.session_state.starter_prompt = "What are the best strategies to beat a 2-3 zone defense?"
                 st.rerun()
         
@@ -353,7 +351,7 @@ def render_welcome_banner():
                 st.rerun()
         
         with col3:
-            if st.button("🎯 תרגילי כדרור לנוער", use_container_width=True):
+            if st.button("🎯 תרגילי כדרור", use_container_width=True):
                 st.session_state.starter_prompt = "תן לי תרגילי כדרור מתקדמים לשחקני נוער"
                 st.rerun()
         
@@ -371,7 +369,7 @@ def render_welcome_banner():
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": formatted_response,
-                "agent": agent.value  # Store as string value
+                "agent": agent.value
             })
             st.rerun()
 
@@ -390,22 +388,13 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS for better chat appearance
+    # Custom CSS
     st.markdown("""
     <style>
         .stChatMessage {
             padding: 1rem;
             border-radius: 10px;
             margin-bottom: 0.5rem;
-        }
-        .stChatInput {
-            border-radius: 20px;
-        }
-        div[data-testid="stSidebarContent"] {
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-        }
-        div[data-testid="stSidebarContent"] * {
-            color: white !important;
         }
         .stButton button {
             border-radius: 20px;

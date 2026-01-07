@@ -147,7 +147,7 @@ def init_gemini():
 def get_available_models():
     """Return available Gemini models for selection."""
     return {
-        "Gemini 2.0 Flash (Free)": "gemini-2.0-flash",
+        "Gemini 2.0 Flash-Lite (Free)": "gemini-2.0-flash-lite",
     }
 
 
@@ -413,7 +413,7 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "model" not in st.session_state:
-        st.session_state.model = "gemini-2.0-flash"
+        st.session_state.model = "gemini-2.0-flash-lite"
     
     # Initialize Gemini
     if not init_gemini():

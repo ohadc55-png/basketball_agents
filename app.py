@@ -99,6 +99,11 @@ CUSTOM_CSS = """
     
     #MainMenu, footer, header {visibility: hidden;}
     
+    /* Global text color - prevent dark text on dark background */
+    .stApp p, .stApp span, .stApp li, .stApp label, .stApp div {
+        color: #FFFFFF;
+    }
+    
     .main .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
@@ -108,6 +113,25 @@ CUSTOM_CSS = """
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, rgba(13,13,13,0.95) 0%, rgba(26,26,26,0.95) 50%, rgba(13,13,13,0.95) 100%);
         border-right: 1px solid rgba(255, 107, 53, 0.3);
+    }
+    
+    [data-testid="stSidebar"] * {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: rgba(30, 30, 30, 0.8) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+        color: #FF6B35 !important;
     }
     
     .hero-title {

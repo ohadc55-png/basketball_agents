@@ -7,7 +7,6 @@ Built with Streamlit & Google Gemini API
 import streamlit as st
 import google.generativeai as genai
 from enum import Enum
-import re
 
 # ============================================================================
 # CONFIGURATION & CONSTANTS
@@ -111,6 +110,17 @@ Your routing decision:"""
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+def get_agent_from_value(agent_value) -> Agent:
+    """Convert agent value (string or Agent) to Agent enum safely."""
+    if isinstance(agent_value, Agent):
+        return agent_value
+    if isinstance(agent_value, str):
+        for agent in Agent:
+            if agent.value == agent_value or agent.name == agent_value:
+                return agent
+    return Agent.HEAD_ASSISTANT  # Default fallback
+
 
 def init_gemini():
     """Initialize the Gemini API with the secret key."""
@@ -280,7 +290,8 @@ def render_chat_interface():
             with st.chat_message("user", avatar="👤"):
                 st.markdown(message["content"])
         else:
-            agent = message.get("agent", Agent.HEAD_ASSISTANT)
+            # Safely get agent - handle both string and Enum
+            agent = get_agent_from_value(message.get("agent", Agent.HEAD_ASSISTANT))
             with st.chat_message("assistant", avatar=AGENT_AVATARS[agent]):
                 st.markdown(message["content"])
     
@@ -309,11 +320,11 @@ def render_chat_interface():
             
             st.markdown(formatted_response)
         
-        # Save assistant message
+        # Save assistant message with agent VALUE (string) for JSON serialization
         st.session_state.messages.append({
             "role": "assistant",
             "content": formatted_response,
-            "agent": agent
+            "agent": agent.value  # Store as string value
         })
 
 
@@ -361,7 +372,7 @@ def render_welcome_banner():
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": formatted_response,
-                "agent": agent
+                "agent": agent.value  # Store as string value
             })
             st.rerun()
 

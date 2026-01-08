@@ -209,7 +209,17 @@ COACH PROFILE - Adapt your answers accordingly:
 
 IMPORTANT: Tailor your advice to the {coach_profile.get('age_group', '')} age group and {coach_profile.get('level', '')} level!"""
     
+    # Add accuracy and honesty instructions to ALL agents
     prompt += """
+
+CRITICAL RULES FOR ALL RESPONSES:
+1. BE PRECISE - Only provide information you are confident about. No guessing.
+2. BE HONEST - If you don't know something or are unsure, say it clearly: "I don't have enough information" or "I'm not certain about this"
+3. NO VAGUE ANSWERS - Avoid generic or wishy-washy responses. Be specific and actionable.
+4. ASK WHEN NEEDED - If you need more information to give a good answer, ASK for it. Don't assume.
+5. ADMIT LIMITATIONS - If a question is outside your expertise or requires real-time data you don't have, say so.
+6. SOURCES - If recommending something specific (exercise, diet, play), explain WHY it works.
+7. SAFETY FIRST - If unsure about safety implications (nutrition, training load), err on the side of caution and recommend consulting a professional.
 
 IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew or English)."""
     

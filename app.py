@@ -451,20 +451,24 @@ CUSTOM_CSS = """
     }
     
     [data-testid="stChatInput"] {
-        background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(30,30,30,0.9)) !important;
-        border: 2px solid rgba(255, 107, 53, 0.5) !important;
-        border-radius: 30px !important;
-        padding: 0.8rem 1rem !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
     }
     
     [data-testid="stChatInput"] textarea {
         color: #FFFFFF !important;
         font-family: 'Rajdhani', sans-serif !important;
         font-size: 1rem !important;
-        background: rgba(40, 40, 40, 0.9) !important;
-        border: 1px solid rgba(255, 107, 53, 0.3) !important;
-        border-radius: 20px !important;
-        padding: 0.5rem 1rem !important;
+        background: rgba(25, 25, 25, 0.95) !important;
+        border: 2px solid rgba(255, 107, 53, 0.5) !important;
+        border-radius: 25px !important;
+        padding: 0.8rem 1rem !important;
+    }
+    
+    [data-testid="stChatInput"] textarea:focus {
+        border-color: #FF6B35 !important;
+        box-shadow: 0 0 15px rgba(255, 107, 53, 0.4) !important;
     }
     
     [data-testid="stChatInput"] textarea::placeholder {
@@ -482,9 +486,22 @@ CUSTOM_CSS = """
     }
     
     [data-testid="stBottom"] {
-        background: linear-gradient(135deg, rgba(13,13,13,0.98), rgba(20,20,20,0.95)) !important;
+        background: rgba(13, 13, 13, 0.98) !important;
         border-top: 1px solid rgba(255, 107, 53, 0.3) !important;
-        padding: 1rem !important;
+    }
+    
+    [data-testid="stBottom"] > div {
+        background: transparent !important;
+    }
+    
+    [data-testid="stBottom"] * {
+        background-color: transparent !important;
+    }
+    
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div {
+        background: transparent !important;
+        background-color: transparent !important;
     }
     
     .stButton > button {

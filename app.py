@@ -451,39 +451,40 @@ CUSTOM_CSS = """
     }
     
     [data-testid="stChatInput"] {
-        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
-        border: none !important;
+        background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(30,30,30,0.9)) !important;
+        border: 2px solid rgba(255, 107, 53, 0.5) !important;
         border-radius: 30px !important;
         padding: 0.8rem 1rem !important;
     }
     
     [data-testid="stChatInput"] textarea {
-        color: #000000 !important;
+        color: #FFFFFF !important;
         font-family: 'Rajdhani', sans-serif !important;
         font-size: 1rem !important;
-        background: #FFFFFF !important;
+        background: rgba(40, 40, 40, 0.9) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
         border-radius: 20px !important;
         padding: 0.5rem 1rem !important;
     }
     
     [data-testid="stChatInput"] textarea::placeholder {
-        color: #666666 !important;
+        color: rgba(255, 255, 255, 0.5) !important;
     }
     
     [data-testid="stChatInput"] button {
-        background: #000000 !important;
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
         border-radius: 50% !important;
-        color: #FF6B35 !important;
+        color: #000 !important;
     }
     
     [data-testid="stChatInput"] button:hover {
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.6) !important;
+        box-shadow: 0 0 20px rgba(255, 107, 53, 0.6) !important;
     }
     
     [data-testid="stBottom"] {
-        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        background: linear-gradient(135deg, rgba(13,13,13,0.98), rgba(20,20,20,0.95)) !important;
+        border-top: 1px solid rgba(255, 107, 53, 0.3) !important;
         padding: 1rem !important;
-        border-top: 2px solid rgba(255, 107, 53, 0.8) !important;
     }
     
     .stButton > button {

@@ -290,25 +290,34 @@ IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew o
 ROUTER_PROMPT = """You are a routing assistant for a basketball coaching app.
 
 AGENTS AVAILABLE:
-- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
-- SKILLS_COACH: basketball drills, shooting, dribbling, footwork (ages 13+)
+- TACTICIAN: ONLY for X's & O's, plays, offensive/defensive schemes, zones, ATOs, pick & roll, spacing, game strategy during play
+- SKILLS_COACH: basketball drills, shooting technique, dribbling, footwork (ages 13+)
 - NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
 - STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
 - ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
-- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development, fun drills, games for kids
-- ASSISTANT_COACH: general questions, team management, other
+- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development
+- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, scheduling, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts, coach development
+
+IMPORTANT DISTINCTIONS:
+- "How to run a practice" → ASSISTANT_COACH (not TACTICIAN)
+- "How to manage players" → ASSISTANT_COACH (not TACTICIAN)
+- "Team communication" → ASSISTANT_COACH
+- "How to beat zone defense" → TACTICIAN
+- "Pick and roll coverage" → TACTICIAN
+- "Offensive sets" → TACTICIAN
 
 CURRENT SITUATION:
 Previous agent: {previous_agent}
 Agent's last message: {previous_message}
 User's response: {question}
 
-ROUTING RULES (VERY IMPORTANT):
+ROUTING RULES:
 1. If the previous agent ASKED FOR INFORMATION and the user is PROVIDING that information → STAY with the SAME agent
-2. If the user mentions ages 5-12, kids, children, mini basketball, young players → YOUTH_COACH
-3. If the user is clearly asking about a DIFFERENT TOPIC → Switch to the appropriate agent
-4. Numbers, measurements, statistics, and short data responses are ALWAYS continuations → STAY with same agent
-5. When in doubt → STAY with the same agent
+2. If the user mentions ages 5-12, kids, children, mini basketball → YOUTH_COACH
+3. If about team MANAGEMENT, PLANNING, COMMUNICATION, LEADERSHIP → ASSISTANT_COACH
+4. If about ON-COURT TACTICS, PLAYS, SCHEMES → TACTICIAN
+5. Numbers, measurements, statistics responses are ALWAYS continuations → STAY with same agent
+6. When in doubt → STAY with the same agent
 
 Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
 
@@ -316,13 +325,22 @@ Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, N
 ROUTER_PROMPT_NO_CONTEXT = """Determine which coach should answer this basketball question.
 
 AGENTS:
-- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
-- SKILLS_COACH: basketball drills, shooting, dribbling, footwork (ages 13+)
+- TACTICIAN: ONLY for X's & O's, plays, offensive/defensive schemes, zones, ATOs, pick & roll, spacing, game strategy during play
+- SKILLS_COACH: basketball drills, shooting technique, dribbling, footwork (ages 13+)
 - NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
 - STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
 - ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
-- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development, fun drills, games for kids
-- ASSISTANT_COACH: general questions, team management, other
+- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development
+- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, scheduling, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts
+
+IMPORTANT DISTINCTIONS:
+- "How to run a practice" → ASSISTANT_COACH (not TACTICIAN)
+- "How to manage players" → ASSISTANT_COACH (not TACTICIAN)
+- "Team communication" → ASSISTANT_COACH
+- "Season planning" → ASSISTANT_COACH
+- "How to beat zone defense" → TACTICIAN
+- "Pick and roll coverage" → TACTICIAN
+- "Offensive sets" → TACTICIAN
 
 Question: {question}
 

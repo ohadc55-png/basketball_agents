@@ -36,6 +36,7 @@ class Agent(Enum):
     SKILLS_COACH = "skills_coach"
     NUTRITIONIST = "nutritionist"
     STRENGTH_COACH = "strength_coach"
+    ANALYST = "analyst"
 
 AGENT_INFO = {
     Agent.ASSISTANT_COACH: {
@@ -72,6 +73,13 @@ AGENT_INFO = {
         "title": "Physical Development",
         "specialty": "Athletic Performance",
         "color": "#FF4500"
+    },
+    Agent.ANALYST: {
+        "name": "THE ANALYST",
+        "icon": "📊",
+        "title": "Data & Statistics Expert",
+        "specialty": "Performance Analytics",
+        "color": "#9370DB"
     }
 }
 
@@ -138,7 +146,53 @@ CRITICAL APPROACH:
 - For older players: progressive overload with proper periodization
 
 Provide detailed workout plans with sets, reps, rest periods, and exercise descriptions.
-Can create daily, weekly, monthly, and seasonal training programs based on team schedule and goals."""
+Can create daily, weekly, monthly, and seasonal training programs based on team schedule and goals.""",
+
+        Agent.ANALYST: """You are an elite Basketball Analytics Expert and Performance Analyst.
+
+YOUR EXPERTISE:
+- Team Statistics Analysis:
+  * Turnovers vs Assists ratio - identifying ball movement issues
+  * Shot selection analysis (2PT vs 3PT attempts, efficiency, shot zones)
+  * Free throw rate and drawing fouls
+  * Offensive/Defensive efficiency ratings
+  * Pace and possession analysis
+  * Rebounding (offensive/defensive) and second chance points
+
+- Player Statistics Analysis:
+  * Individual scoring efficiency (TS%, eFG%, Points per possession)
+  * Usage rate and ball dominance
+  * Plus/minus and impact metrics
+  * Shot charts and hot zones
+  * Assist to turnover ratio
+  * Clutch performance (last 5 minutes, close games)
+
+- Actionable Insights:
+  * If high turnovers → analyze WHO is turning it over and WHEN (transition vs halfcourt, early vs late clock)
+  * If low assists → identify if it's personnel, spacing, or system issue
+  * If poor shooting → break down by shot type, defender proximity, catch-and-shoot vs off-dribble
+  * Recommend lineup changes based on data
+  * Identify which player should have the ball in crucial moments
+  * Suggest style-of-play adjustments based on team strengths/weaknesses
+
+- Opponent Scouting:
+  * Identify opponent tendencies and weaknesses
+  * Suggest game plans based on matchup data
+  * Key players to target or avoid
+
+CRITICAL APPROACH:
+- ALWAYS ask for specific data/statistics before providing analysis
+- Don't guess - request numbers: "How many turnovers? How many assists? What's the shooting breakdown?"
+- Provide SPECIFIC, ACTIONABLE recommendations - not generic advice
+- Use data to support every recommendation
+- Connect statistics to practical on-court solutions
+- Consider context: age group, competition level, team goals
+
+When given stats, provide:
+1. What the numbers tell us (diagnosis)
+2. Why it might be happening (root cause)
+3. What to do about it (actionable solutions)
+4. How to measure improvement (KPIs to track)"""
     }
     
     prompt = base_prompts[agent]
@@ -161,39 +215,43 @@ IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew o
     
     return prompt
 
-ROUTER_PROMPT = """Determine which coach should answer this basketball question.
+ROUTER_PROMPT = """You are a routing assistant for a basketball coaching app.
 
-AGENTS:
-- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs, offensive/defensive systems
-- SKILLS_COACH: basketball drills, shooting, dribbling, footwork, player skill development
-- NUTRITIONIST: food, diet, meals, nutrition, eating, hydration, supplements, weight management, meal plans
-- STRENGTH_COACH: gym, strength, conditioning, fitness, weights, jumping, speed, agility, physical training, workout programs, periodization
-- ASSISTANT_COACH: general questions, team management, motivation, scheduling, or anything that doesn't fit above
+AGENTS AVAILABLE:
+- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
+- SKILLS_COACH: basketball drills, shooting, dribbling, footwork
+- NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
+- STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
+- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, shot charts, analytics, performance metrics
+- ASSISTANT_COACH: general questions, team management, other
 
-CONTEXT RULES:
-- If the user is providing data/answers requested by the previous agent (like age, weight, height, player details), STAY with the SAME agent
-- If the user is asking a NEW question on a DIFFERENT topic, switch to the appropriate agent
-- Short responses with numbers/data are usually CONTINUATIONS of the previous conversation
-
+CURRENT SITUATION:
 Previous agent: {previous_agent}
-Previous message from agent: {previous_message}
-User's new message: {question}
+Agent's last message: {previous_message}
+User's response: {question}
 
-Answer with ONE word only: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, or ASSISTANT_COACH"""
+ROUTING RULES (VERY IMPORTANT):
+1. If the previous agent ASKED FOR INFORMATION (age, weight, height, player data, statistics, details) and the user is PROVIDING that information → STAY with the SAME agent
+2. If the user is clearly asking about a DIFFERENT TOPIC → Switch to the appropriate agent
+3. Numbers, measurements, statistics, and short data responses are ALWAYS continuations → STAY with same agent
+4. When in doubt → STAY with the same agent
+
+Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, or ASSISTANT_COACH"""
 
 
 ROUTER_PROMPT_NO_CONTEXT = """Determine which coach should answer this basketball question.
 
 AGENTS:
-- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs, offensive/defensive systems
-- SKILLS_COACH: basketball drills, shooting, dribbling, footwork, player skill development
-- NUTRITIONIST: food, diet, meals, nutrition, eating, hydration, supplements, weight management, meal plans
-- STRENGTH_COACH: gym, strength, conditioning, fitness, weights, jumping, speed, agility, physical training, workout programs, periodization
-- ASSISTANT_COACH: general questions, team management, motivation, scheduling, or anything that doesn't fit above
+- TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
+- SKILLS_COACH: basketball drills, shooting, dribbling, footwork
+- NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
+- STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
+- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, shot charts, analytics, performance metrics
+- ASSISTANT_COACH: general questions, team management, other
 
 Question: {question}
 
-Answer with ONE word only: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, or ASSISTANT_COACH"""
+Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, or ASSISTANT_COACH"""
 
 # ============================================================================
 # CSS STYLING
@@ -552,7 +610,7 @@ def get_openai_client():
         return None
 
 def route_question(question, client, chat_history=None):
-    """Route question to appropriate agent with context awareness"""
+    """Route question to appropriate agent with smart context awareness"""
     try:
         # Check if we have previous context
         previous_agent = None
@@ -563,14 +621,34 @@ def route_question(question, client, chat_history=None):
             for msg in reversed(chat_history):
                 if msg.get("role") == "assistant" and msg.get("agent"):
                     previous_agent = msg.get("agent")
-                    previous_message = msg.get("raw_content", msg.get("content", ""))[:200]  # Limit length
+                    previous_message = msg.get("raw_content", msg.get("content", ""))[:300]
                     break
         
-        # Use context-aware prompt if we have history
+        # SMART CHECK: If previous agent asked a question and user gives short/data response, STAY
+        if previous_agent and previous_message:
+            # Check if previous message contains a question
+            has_question = "?" in previous_message or any(word in previous_message.lower() for word in 
+                ["please provide", "tell me", "what is", "how much", "how many", "ספר לי", "מה", "כמה", "איזה", "אנא"])
+            
+            # Check if user response looks like data/continuation (short, has numbers, answering format)
+            is_data_response = (
+                len(question) < 200 or  # Short response
+                any(char.isdigit() for char in question) or  # Contains numbers
+                question.strip().startswith(("גיל", "משקל", "גובה", "age", "weight", "height", "כן", "לא", "yes", "no"))
+            )
+            
+            # If agent asked question and user seems to be answering → STAY with same agent
+            if has_question and is_data_response:
+                # Return previous agent directly without asking Router
+                for agent in Agent:
+                    if agent.value == previous_agent:
+                        return agent
+        
+        # Use Router for new topics or when no clear continuation
         if previous_agent and previous_message:
             prompt = ROUTER_PROMPT.format(
                 previous_agent=previous_agent.upper().replace("_", " "),
-                previous_message=previous_message,
+                previous_message=previous_message[:200],
                 question=question
             )
         else:
@@ -592,6 +670,8 @@ def route_question(question, client, chat_history=None):
             return Agent.NUTRITIONIST
         elif "STRENGTH" in result:
             return Agent.STRENGTH_COACH
+        elif "ANALYST" in result:
+            return Agent.ANALYST
         return Agent.ASSISTANT_COACH
     except Exception:
         return Agent.ASSISTANT_COACH
@@ -834,8 +914,8 @@ def render_welcome():
         </div>
         ''', unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
-        col3, col4 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
+        col4, col5, col6 = st.columns(3)
         
         with col1:
             if st.button("📋 ZONE OFFENSE", use_container_width=True):
@@ -849,6 +929,12 @@ def render_welcome():
         with col4:
             if st.button("🏋️ VERTICAL JUMP", use_container_width=True):
                 st.session_state.pending_prompt = "How can I improve my players' vertical jump?"
+        with col5:
+            if st.button("📊 ANALYZE STATS", use_container_width=True):
+                st.session_state.pending_prompt = "My team had 15 turnovers and only 8 assists last game. What does this tell us and how can we improve?"
+        with col6:
+            if st.button("🎯 תרגילי כדרור", use_container_width=True):
+                st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקנים שלי"
 
 def render_chat(client, supabase):
     """Render chat interface"""

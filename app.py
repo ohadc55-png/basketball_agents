@@ -37,6 +37,7 @@ class Agent(Enum):
     NUTRITIONIST = "nutritionist"
     STRENGTH_COACH = "strength_coach"
     ANALYST = "analyst"
+    YOUTH_COACH = "youth_coach"
 
 AGENT_INFO = {
     Agent.ASSISTANT_COACH: {
@@ -80,6 +81,13 @@ AGENT_INFO = {
         "title": "Data & Statistics Expert",
         "specialty": "Performance Analytics",
         "color": "#9370DB"
+    },
+    Agent.YOUTH_COACH: {
+        "name": "YOUTH COACH",
+        "icon": "👶",
+        "title": "Kids Development Expert",
+        "specialty": "Ages 5-12 Specialist",
+        "color": "#FF69B4"
     }
 }
 
@@ -192,7 +200,61 @@ When given stats, provide:
 1. What the numbers tell us (diagnosis)
 2. Why it might be happening (root cause)
 3. What to do about it (actionable solutions)
-4. How to measure improvement (KPIs to track)"""
+4. How to measure improvement (KPIs to track)""",
+
+        Agent.YOUTH_COACH: """You are an expert Youth Basketball Coach specializing in children ages 5-12.
+
+YOUR PHILOSOPHY:
+- FUN FIRST - If kids aren't having fun, they won't learn or stay in the sport
+- Development over winning - focus on long-term player development, not short-term results
+- Every child is different - adapt to individual learning styles and abilities
+- Positive reinforcement - build confidence through encouragement
+- Age-appropriate expectations - don't expect adult skills from children
+
+AGE-SPECIFIC APPROACH:
+
+MINI BASKETBALL (Ages 5-8):
+- Focus: Basic motor skills, coordination, balance, FUN
+- Ball handling: Small balls, basic dribbling games
+- Shooting: Lowered baskets, proper form introduction
+- Games: Tag games with basketballs, relay races, simple 1v1 and 2v2
+- Attention span: 10-15 minutes per activity MAX, then switch
+- NO complex plays or tactics - let them play freely
+- Key skills: Catching, passing (chest pass only), basic dribble, layups
+
+YOUTH (Ages 9-12):
+- Focus: Fundamental skills, teamwork introduction, game understanding
+- Ball handling: Both hands, basic moves (crossover, between legs intro)
+- Shooting: Correct form emphasis, free throws, short-range shots
+- Defense: Stance, sliding, basic concepts (no complex schemes)
+- Games: 3v3, 4v4, modified 5v5 with simple rules
+- Attention span: 20-30 minutes per activity
+- Introduce: Basic spacing, give-and-go, pick concepts (age 11-12)
+- Key skills: Triple threat, pivot footwork, passing variety, boxing out
+
+TRAINING SESSION STRUCTURE:
+1. Dynamic warm-up with ball (5-10 min) - fun and active
+2. Skill station work (15-20 min) - rotate every 5 min
+3. Game-like drills/scrimmage (15-20 min) - apply skills
+4. Fun game/competition (5-10 min) - end on high note
+
+CRITICAL APPROACH:
+- ALWAYS ask the age of players before giving advice
+- Use GAMES to teach skills, not boring repetitive drills
+- Keep instructions SHORT and SIMPLE
+- Demonstrate more, talk less
+- Celebrate effort, not just results
+- NEVER yell or criticize harshly - redirect positively
+- Include ALL players, not just the talented ones
+
+WHAT TO AVOID:
+- Zone defenses before age 12
+- Full court press before age 10
+- Complex plays with more than 2 actions
+- Position specialization before age 12
+- Excessive focus on winning
+- Comparing kids to each other
+- Long explanations - keep it simple!"""
     }
     
     prompt = base_prompts[agent]
@@ -229,10 +291,11 @@ ROUTER_PROMPT = """You are a routing assistant for a basketball coaching app.
 
 AGENTS AVAILABLE:
 - TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
-- SKILLS_COACH: basketball drills, shooting, dribbling, footwork
+- SKILLS_COACH: basketball drills, shooting, dribbling, footwork (ages 13+)
 - NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
 - STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
-- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, shot charts, analytics, performance metrics
+- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
+- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development, fun drills, games for kids
 - ASSISTANT_COACH: general questions, team management, other
 
 CURRENT SITUATION:
@@ -241,27 +304,29 @@ Agent's last message: {previous_message}
 User's response: {question}
 
 ROUTING RULES (VERY IMPORTANT):
-1. If the previous agent ASKED FOR INFORMATION (age, weight, height, player data, statistics, details) and the user is PROVIDING that information → STAY with the SAME agent
-2. If the user is clearly asking about a DIFFERENT TOPIC → Switch to the appropriate agent
-3. Numbers, measurements, statistics, and short data responses are ALWAYS continuations → STAY with same agent
-4. When in doubt → STAY with the same agent
+1. If the previous agent ASKED FOR INFORMATION and the user is PROVIDING that information → STAY with the SAME agent
+2. If the user mentions ages 5-12, kids, children, mini basketball, young players → YOUTH_COACH
+3. If the user is clearly asking about a DIFFERENT TOPIC → Switch to the appropriate agent
+4. Numbers, measurements, statistics, and short data responses are ALWAYS continuations → STAY with same agent
+5. When in doubt → STAY with the same agent
 
-Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, or ASSISTANT_COACH"""
+Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
 
 
 ROUTER_PROMPT_NO_CONTEXT = """Determine which coach should answer this basketball question.
 
 AGENTS:
 - TACTICIAN: plays, schemes, X's & O's, game strategy, zones, ATOs
-- SKILLS_COACH: basketball drills, shooting, dribbling, footwork
+- SKILLS_COACH: basketball drills, shooting, dribbling, footwork (ages 13+)
 - NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
 - STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
-- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, shot charts, analytics, performance metrics
+- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
+- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development, fun drills, games for kids
 - ASSISTANT_COACH: general questions, team management, other
 
 Question: {question}
 
-Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, or ASSISTANT_COACH"""
+Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
 
 # ============================================================================
 # CSS STYLING
@@ -604,6 +669,34 @@ def update_conversation_title(supabase, conversation_id, title):
     except Exception:
         pass
 
+def get_agent_documents(supabase, agent_name):
+    """Get all documents for a specific agent (simple retrieval without embeddings)"""
+    try:
+        result = supabase.table("documents").select("title, content").eq("agent", agent_name).execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def get_agent_knowledge(supabase, agent):
+    """Build knowledge context from agent's documents"""
+    agent_name = agent.value  # e.g., "youth_coach"
+    documents = get_agent_documents(supabase, agent_name)
+    
+    if not documents:
+        return ""
+    
+    knowledge = "\n\nKNOWLEDGE BASE - Use this information to answer questions:\n"
+    knowledge += "=" * 50 + "\n"
+    
+    for doc in documents:
+        knowledge += f"\n### {doc.get('title', 'Document')}\n"
+        knowledge += f"{doc.get('content', '')}\n"
+        knowledge += "-" * 30 + "\n"
+    
+    knowledge += "\nIMPORTANT: Use the knowledge base above when relevant. If the question is about something in your knowledge base, prioritize that information."
+    
+    return knowledge
+
 # ============================================================================
 # OPENAI FUNCTIONS
 # ============================================================================
@@ -682,14 +775,23 @@ def route_question(question, client, chat_history=None):
             return Agent.STRENGTH_COACH
         elif "ANALYST" in result:
             return Agent.ANALYST
+        elif "YOUTH" in result:
+            return Agent.YOUTH_COACH
         return Agent.ASSISTANT_COACH
     except Exception:
         return Agent.ASSISTANT_COACH
 
-def get_agent_response(question, agent, chat_history, client, coach_profile=None):
-    """Get response from specific agent"""
+def get_agent_response(question, agent, chat_history, client, coach_profile=None, supabase=None):
+    """Get response from specific agent with RAG knowledge"""
     try:
         system_prompt = get_system_prompt(agent, coach_profile)
+        
+        # Add RAG knowledge if available
+        if supabase:
+            knowledge = get_agent_knowledge(supabase, agent)
+            if knowledge:
+                system_prompt += knowledge
+        
         messages = [{"role": "system", "content": system_prompt}]
         
         # Add recent history
@@ -926,6 +1028,7 @@ def render_welcome():
         
         col1, col2, col3 = st.columns(3)
         col4, col5, col6 = st.columns(3)
+        col7, col8, col9 = st.columns(3)
         
         with col1:
             if st.button("📋 ZONE OFFENSE", use_container_width=True):
@@ -943,8 +1046,17 @@ def render_welcome():
             if st.button("📊 ANALYZE STATS", use_container_width=True):
                 st.session_state.pending_prompt = "My team had 15 turnovers and only 8 assists last game. What does this tell us and how can we improve?"
         with col6:
+            if st.button("👶 KIDS TRAINING", use_container_width=True):
+                st.session_state.pending_prompt = "What are fun basketball drills for kids ages 6-8?"
+        with col7:
             if st.button("🎯 תרגילי כדרור", use_container_width=True):
                 st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקנים שלי"
+        with col8:
+            if st.button("👶 אימון ילדים", use_container_width=True):
+                st.session_state.pending_prompt = "תן לי תרגילים כיפיים לילדים בגילאי 5-8"
+        with col9:
+            if st.button("📊 ניתוח משחק", use_container_width=True):
+                st.session_state.pending_prompt = "הקבוצה שלי איבדה 12 כדורים ועשתה 6 אסיסטים, מה אפשר לשפר?"
 
 def render_chat(client, supabase):
     """Render chat interface"""
@@ -993,7 +1105,8 @@ def render_chat(client, supabase):
                     prompt, agent, 
                     st.session_state.messages[:-1], 
                     client, 
-                    coach  # Pass coach profile!
+                    coach,  # Pass coach profile
+                    supabase  # Pass supabase for RAG
                 )
                 formatted = format_response(raw_response, agent)
             st.markdown(formatted, unsafe_allow_html=True)

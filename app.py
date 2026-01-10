@@ -1237,43 +1237,6 @@ def render_chat(client, supabase):
     """Render chat interface"""
     coach = st.session_state.get('coach', {})
     
-    # Sidebar toggle arrow for desktop (JavaScript to open sidebar)
-    st.markdown('''
-    <style>
-    .sidebar-open-btn {
-        position: fixed;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        background: linear-gradient(135deg, #FF6B35, #FF8C42);
-        color: #000;
-        border: none;
-        border-radius: 0 10px 10px 0;
-        padding: 15px 10px;
-        cursor: pointer;
-        z-index: 999999;
-        font-size: 1.2rem;
-        box-shadow: 2px 0 10px rgba(255, 107, 53, 0.3);
-        transition: all 0.3s ease;
-    }
-    .sidebar-open-btn:hover {
-        padding-left: 18px;
-        box-shadow: 2px 0 20px rgba(255, 107, 53, 0.5);
-    }
-    @media (max-width: 768px) {
-        .sidebar-open-btn { display: none; }
-    }
-    </style>
-    <button class="sidebar-open-btn" onclick="
-        var btn = window.parent.document.querySelector('[data-testid=baseButton-headerNoPadding]');
-        if(btn) btn.click();
-        var btn2 = window.parent.document.querySelector('button[kind=headerNoPadding]');
-        if(btn2) btn2.click();
-        var sidebar = window.parent.document.querySelector('section[data-testid=stSidebar]');
-        if(sidebar) sidebar.style.display = 'block';
-    ">▶</button>
-    ''', unsafe_allow_html=True)
-    
     # Display chat history
     for msg in st.session_state.messages:
         if msg["role"] == "user":
@@ -1364,6 +1327,42 @@ def main():
         render_login_page(supabase)
     else:
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+        
+        # Floating menu button for when sidebar is closed
+        st.markdown('''
+        <style>
+        .floating-menu {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            z-index: 999999;
+            display: none;
+        }
+        
+        /* Show floating menu when sidebar is collapsed */
+        @media (min-width: 768px) {
+            .floating-menu {
+                display: block;
+            }
+            
+            /* Hide when sidebar is visible */
+            section[data-testid="stSidebar"][aria-expanded="true"] ~ div .floating-menu {
+                display: none !important;
+            }
+        }
+        </style>
+        ''', unsafe_allow_html=True)
+        
+        # Add a small menu button at top left of main content
+        col_menu, col_rest = st.columns([1, 15])
+        with col_menu:
+            if st.button("☰", key="open_sidebar_btn", help="Open Menu"):
+                st.session_state.show_sidebar_hint = True
+        
+        if st.session_state.get('show_sidebar_hint'):
+            st.info("👈 Use the arrow (>) at the top left corner of the screen to open the sidebar, or hover over the left edge.")
+            st.session_state.show_sidebar_hint = False
+        
         render_sidebar(supabase)
         render_header()
         render_welcome()

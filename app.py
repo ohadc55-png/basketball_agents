@@ -1304,13 +1304,13 @@ def render_chat(client, supabase):
         st.markdown('''
         <div style="background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 15px; padding: 1rem; margin: 1rem 0;">
             <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem;">📁 UPLOAD FILE FOR ANALYSIS</div>
-            <div style="color:#B0B0B0; font-size:0.85rem;">Upload CSV, Excel, PDF, or Image with statistics</div>
+            <div style="color:#B0B0B0; font-size:0.85rem;">Upload image (screenshot), CSV, or Excel with statistics</div>
         </div>
         ''', unsafe_allow_html=True)
         
         uploaded_file = st.file_uploader(
             "Choose a file",
-            type=['csv', 'xlsx', 'xls', 'txt', 'pdf', 'png', 'jpg', 'jpeg'],
+            type=['csv', 'xlsx', 'xls', 'txt', 'png', 'jpg', 'jpeg', 'webp'],
             key="stats_file_chat",
             label_visibility="collapsed"
         )
@@ -1322,100 +1322,52 @@ def render_chat(client, supabase):
         )
         
         col_analyze, col_cancel = st.columns(2)
-        with col_analyze:
-            if uploaded_file is not None:
+        
+        if uploaded_file is not None:
+            # Show file preview info
+            st.success(f"✅ File loaded: {uploaded_file.name}")
+            
+            with col_analyze:
                 if st.button("🔍 ANALYZE NOW", key="analyze_btn_chat", use_container_width=True):
                     try:
                         file_name = uploaded_file.name.lower()
                         
-                        # Handle different file types
-                        if file_name.endswith('.csv'):
-                            import pandas as pd
-                            df = pd.read_csv(uploaded_file)
-                            file_content = df.to_string()
-                            st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()}:
-
-DATA:
-{file_content}
-
-Provide:
-1. Key insights from the data
-2. Strengths identified
-3. Areas for improvement
-4. Specific recommendations
-5. What to focus on in practice"""
-
-                        elif file_name.endswith(('.xlsx', '.xls')):
-                            import pandas as pd
-                            df = pd.read_excel(uploaded_file)
-                            file_content = df.to_string()
-                            st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()}:
-
-DATA:
-{file_content}
-
-Provide:
-1. Key insights from the data
-2. Strengths identified
-3. Areas for improvement
-4. Specific recommendations
-5. What to focus on in practice"""
-
-                        elif file_name.endswith(('.png', '.jpg', '.jpeg')):
-                            # Handle image - encode to base64
+                        # Handle IMAGE files
+                        if file_name.endswith(('.png', '.jpg', '.jpeg', '.webp')):
                             import base64
-                            image_data = base64.b64encode(uploaded_file.read()).decode('utf-8')
-                            file_ext = file_name.split('.')[-1]
-                            mime_type = f"image/{'jpeg' if file_ext == 'jpg' else file_ext}"
+                            file_bytes = uploaded_file.getvalue()
+                            image_data = base64.b64encode(file_bytes).decode('utf-8')
+                            
+                            # Determine mime type
+                            if file_name.endswith('.png'):
+                                mime_type = "image/png"
+                            elif file_name.endswith('.webp'):
+                                mime_type = "image/webp"
+                            else:
+                                mime_type = "image/jpeg"
                             
                             # Store image data for vision API
                             st.session_state.pending_image = {
                                 "data": image_data,
                                 "mime_type": mime_type
                             }
-                            st.session_state.pending_prompt = f"""Please analyze this image containing {analysis_type.lower()}.
+                            st.session_state.pending_prompt = f"""Analyze this image containing {analysis_type.lower()}.
 
-Extract all the statistics and data you can see, then provide:
-1. Key insights from the data
-2. Strengths identified
-3. Areas for improvement
-4. Specific recommendations
-5. What to focus on in practice"""
+Extract ALL statistics and data visible in the image, then provide:
+1. Summary of the data you see
+2. Key insights
+3. Strengths identified  
+4. Areas for improvement
+5. Specific actionable recommendations"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
 
-                        elif file_name.endswith('.pdf'):
-                            # Handle PDF - try to extract text
-                            try:
-                                import fitz  # PyMuPDF
-                                pdf_bytes = uploaded_file.read()
-                                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-                                text_content = ""
-                                for page in doc:
-                                    text_content += page.get_text()
-                                doc.close()
-                                
-                                if text_content.strip():
-                                    st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()} from a PDF document:
-
-DATA:
-{text_content}
-
-Provide:
-1. Key insights from the data
-2. Strengths identified
-3. Areas for improvement
-4. Specific recommendations
-5. What to focus on in practice"""
-                                else:
-                                    st.error("Could not extract text from PDF. Try uploading as image.")
-                                    st.stop()
-                            except ImportError:
-                                # If PyMuPDF not available, convert PDF to image
-                                st.error("PDF text extraction not available. Please upload as image or CSV.")
-                                st.stop()
-
-                        else:
-                            file_content = uploaded_file.read().decode('utf-8')
-                            st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()}:
+                        # Handle CSV files
+                        elif file_name.endswith('.csv'):
+                            import pandas as pd
+                            df = pd.read_csv(uploaded_file)
+                            file_content = df.to_string()
+                            st.session_state.pending_prompt = f"""Analyze the following {analysis_type.lower()}:
 
 DATA:
 {file_content}
@@ -1426,11 +1378,48 @@ Provide:
 3. Areas for improvement
 4. Specific recommendations
 5. What to focus on in practice"""
-                        
-                        st.session_state.show_file_upload = False
-                        st.rerun()
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+
+                        # Handle Excel files
+                        elif file_name.endswith(('.xlsx', '.xls')):
+                            import pandas as pd
+                            df = pd.read_excel(uploaded_file)
+                            file_content = df.to_string()
+                            st.session_state.pending_prompt = f"""Analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+
+                        # Handle text files
+                        else:
+                            file_content = uploaded_file.read().decode('utf-8')
+                            st.session_state.pending_prompt = f"""Analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+                            
                     except Exception as e:
                         st.error(f"Error reading file: {e}")
+        
         with col_cancel:
             if st.button("❌ Cancel", key="cancel_upload_chat", use_container_width=True):
                 st.session_state.show_file_upload = False

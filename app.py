@@ -593,6 +593,49 @@ CUSTOM_CSS = """
         background-color: transparent !important;
     }
     
+    /* File uploader styling - dark text on light background */
+    [data-testid="stFileUploader"] {
+        background: rgba(30, 30, 30, 0.95) !important;
+        border: 2px solid rgba(255, 107, 53, 0.5) !important;
+        border-radius: 15px !important;
+        padding: 1rem !important;
+    }
+    
+    [data-testid="stFileUploader"] label {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stFileUploader"] section {
+        background: rgba(50, 50, 50, 0.9) !important;
+        border: 2px dashed rgba(255, 107, 53, 0.5) !important;
+        border-radius: 10px !important;
+    }
+    
+    [data-testid="stFileUploader"] section > div {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stFileUploader"] small {
+        color: #FF6B35 !important;
+    }
+    
+    [data-testid="stFileUploader"] button {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Selectbox styling */
+    [data-testid="stSelectbox"] label {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stSelectbox"] > div > div {
+        background: rgba(40, 40, 40, 0.95) !important;
+        border: 1px solid rgba(255, 107, 53, 0.5) !important;
+        color: #FFFFFF !important;
+    }
+    
     .stButton > button {
         font-family: 'Orbitron', monospace;
         font-weight: 600;
@@ -1233,67 +1276,6 @@ def render_welcome():
         with col5:
             if st.button("📊 GAME ANALYSIS\n\nAnalyze team stats", use_container_width=True):
                 st.session_state.pending_prompt = "I want to analyze my team's performance. What statistics should I provide you?"
-        with col6:
-            if st.button("📁 UPLOAD STATS\n\nAnalyze from file", use_container_width=True):
-                st.session_state.show_file_upload = True
-        
-        # File upload section
-        if st.session_state.get('show_file_upload', False):
-            st.markdown('''
-            <div style="background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 15px; padding: 1rem; margin: 1rem 0;">
-                <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem;">📁 UPLOAD STATISTICS FILE</div>
-                <div style="color:#B0B0B0; font-size:0.85rem;">Upload CSV, Excel, or text file with player/team/game statistics</div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            uploaded_file = st.file_uploader(
-                "Choose a file",
-                type=['csv', 'xlsx', 'xls', 'txt'],
-                key="stats_file",
-                label_visibility="collapsed"
-            )
-            
-            analysis_type = st.selectbox(
-                "What do you want to analyze?",
-                ["Player individual stats", "Team stats", "Game stats", "Season overview", "Compare players"],
-                key="analysis_type"
-            )
-            
-            if uploaded_file is not None:
-                try:
-                    # Read file content
-                    if uploaded_file.name.endswith('.csv'):
-                        import pandas as pd
-                        df = pd.read_csv(uploaded_file)
-                        file_content = df.to_string()
-                    elif uploaded_file.name.endswith(('.xlsx', '.xls')):
-                        import pandas as pd
-                        df = pd.read_excel(uploaded_file)
-                        file_content = df.to_string()
-                    else:
-                        file_content = uploaded_file.read().decode('utf-8')
-                    
-                    if st.button("🔍 ANALYZE NOW", use_container_width=True):
-                        st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()}:
-
-DATA:
-{file_content}
-
-Provide:
-1. Key insights from the data
-2. Strengths identified
-3. Areas for improvement
-4. Specific recommendations
-5. What to focus on in practice"""
-                        st.session_state.show_file_upload = False
-                        st.rerun()
-                        
-                except Exception as e:
-                    st.error(f"Error reading file: {e}")
-            
-            if st.button("❌ Cancel", use_container_width=True):
-                st.session_state.show_file_upload = False
-                st.rerun()
 
 def render_chat(client, supabase):
     """Render chat interface"""
@@ -1302,17 +1284,17 @@ def render_chat(client, supabase):
     # File upload section (can be triggered anytime)
     if st.session_state.get('show_file_upload', False):
         st.markdown('''
-        <div style="background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 15px; padding: 1rem; margin: 1rem 0;">
-            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem;">📁 UPLOAD FILE FOR ANALYSIS</div>
-            <div style="color:#B0B0B0; font-size:0.85rem;">Upload image (screenshot), CSV, or Excel with statistics</div>
+        <div style="background: rgba(30,30,30,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1.5rem; margin: 1rem 0;">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1.1rem; margin-bottom:0.5rem;">📁 UPLOAD FILE FOR ANALYSIS</div>
+            <div style="color:#FFFFFF; font-size:0.9rem;">Supported formats: <span style="color:#FF6B35;">CSV, Excel, TXT, or Image (Screenshot)</span></div>
         </div>
         ''', unsafe_allow_html=True)
         
         uploaded_file = st.file_uploader(
-            "Choose a file",
+            "Drop your file here or click to browse",
             type=['csv', 'xlsx', 'xls', 'txt', 'png', 'jpg', 'jpeg', 'webp'],
             key="stats_file_chat",
-            label_visibility="collapsed"
+            label_visibility="visible"
         )
         
         analysis_type = st.selectbox(

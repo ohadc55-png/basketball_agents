@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+## -*- coding: utf-8 -*-
 """
 HOOPS AI - Basketball Coaching Staff
 Virtual Locker Room with Multi-Agent System
@@ -704,6 +704,29 @@ CUSTOM_CSS = """
     ::-webkit-scrollbar {width: 8px;}
     ::-webkit-scrollbar-track {background: #0D0D0D;}
     ::-webkit-scrollbar-thumb {background: linear-gradient(#FF6B35, #FF8C42); border-radius: 4px;}
+    
+    /* Force sidebar to always be visible on desktop */
+    @media (min-width: 768px) {
+        section[data-testid="stSidebar"] {
+            display: flex !important;
+            width: 300px !important;
+            min-width: 300px !important;
+            transform: none !important;
+            position: relative !important;
+        }
+        
+        /* Hide the collapse button on desktop */
+        button[data-testid="stSidebarCollapseButton"],
+        [data-testid="collapsedControl"],
+        button[kind="headerNoPadding"] {
+            display: none !important;
+        }
+        
+        /* Ensure main content adjusts */
+        .main .block-container {
+            max-width: 100% !important;
+        }
+    }
 </style>
 """.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
@@ -1327,42 +1350,6 @@ def main():
         render_login_page(supabase)
     else:
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-        
-        # Floating menu button for when sidebar is closed
-        st.markdown('''
-        <style>
-        .floating-menu {
-            position: fixed;
-            left: 10px;
-            top: 10px;
-            z-index: 999999;
-            display: none;
-        }
-        
-        /* Show floating menu when sidebar is collapsed */
-        @media (min-width: 768px) {
-            .floating-menu {
-                display: block;
-            }
-            
-            /* Hide when sidebar is visible */
-            section[data-testid="stSidebar"][aria-expanded="true"] ~ div .floating-menu {
-                display: none !important;
-            }
-        }
-        </style>
-        ''', unsafe_allow_html=True)
-        
-        # Add a small menu button at top left of main content
-        col_menu, col_rest = st.columns([1, 15])
-        with col_menu:
-            if st.button("☰", key="open_sidebar_btn", help="Open Menu"):
-                st.session_state.show_sidebar_hint = True
-        
-        if st.session_state.get('show_sidebar_hint'):
-            st.info("👈 Use the arrow (>) at the top left corner of the screen to open the sidebar, or hover over the left edge.")
-            st.session_state.show_sidebar_hint = False
-        
         render_sidebar(supabase)
         render_header()
         render_welcome()

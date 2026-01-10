@@ -704,48 +704,6 @@ CUSTOM_CSS = """
     ::-webkit-scrollbar {width: 8px;}
     ::-webkit-scrollbar-track {background: #0D0D0D;}
     ::-webkit-scrollbar-thumb {background: linear-gradient(#FF6B35, #FF8C42); border-radius: 4px;}
-    
-    /* Mobile-only buttons - hide on desktop */
-    .mobile-buttons {
-        display: none;
-    }
-    
-    @media (max-width: 768px) {
-        .mobile-buttons {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-    }
-    
-    /* Sidebar toggle arrow for desktop */
-    .sidebar-toggle {
-        position: fixed;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        background: linear-gradient(135deg, #FF6B35, #FF8C42);
-        color: #000;
-        border: none;
-        border-radius: 0 10px 10px 0;
-        padding: 15px 8px;
-        cursor: pointer;
-        z-index: 1000;
-        font-size: 1.2rem;
-        box-shadow: 2px 0 10px rgba(255, 107, 53, 0.3);
-        transition: all 0.3s ease;
-    }
-    
-    .sidebar-toggle:hover {
-        padding-left: 15px;
-        box-shadow: 2px 0 20px rgba(255, 107, 53, 0.5);
-    }
-    
-    @media (max-width: 768px) {
-        .sidebar-toggle {
-            display: none;
-        }
-    }
 </style>
 """.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
@@ -1180,33 +1138,6 @@ def render_welcome():
     if not st.session_state.messages:
         coach = st.session_state.get('coach', {})
         
-        # Mobile-only buttons (hidden on desktop via CSS)
-        st.markdown('''
-        <div class="mobile-buttons">
-        </div>
-        ''', unsafe_allow_html=True)
-        
-        # Mobile buttons using Streamlit (will be hidden on desktop)
-        is_mobile = st.session_state.get('is_mobile', False)
-        
-        # Show mobile buttons
-        col_new, col_history, col_exit = st.columns(3)
-        with col_new:
-            if st.button("➕ NEW", key="new_chat_main", use_container_width=True, help="Start new chat"):
-                st.session_state.current_conversation = None
-                st.session_state.messages = []
-                st.rerun()
-        with col_history:
-            if st.button("📜 HISTORY", key="history_main", use_container_width=True, help="View chat history"):
-                pass  # Sidebar will open
-        with col_exit:
-            if st.button("🚪 EXIT", key="exit_main", use_container_width=True, help="Logout"):
-                st.session_state.logged_in = False
-                st.session_state.coach = None
-                st.session_state.messages = []
-                st.session_state.current_conversation = None
-                st.rerun()
-        
         st.markdown(f'''
         <div class="welcome-banner">
             <div class="welcome-title">👋 Hey Coach {coach.get('name', '').split()[0] if coach.get('name') else ''}!</div>
@@ -1306,31 +1237,42 @@ def render_chat(client, supabase):
     """Render chat interface"""
     coach = st.session_state.get('coach', {})
     
-    # Sidebar toggle arrow for desktop (when sidebar is collapsed)
+    # Sidebar toggle arrow for desktop (JavaScript to open sidebar)
     st.markdown('''
-    <div class="sidebar-toggle" onclick="window.parent.document.querySelector('[data-testid=collapsedControl]').click()">
-        ▶
-    </div>
+    <style>
+    .sidebar-open-btn {
+        position: fixed;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background: linear-gradient(135deg, #FF6B35, #FF8C42);
+        color: #000;
+        border: none;
+        border-radius: 0 10px 10px 0;
+        padding: 15px 10px;
+        cursor: pointer;
+        z-index: 999999;
+        font-size: 1.2rem;
+        box-shadow: 2px 0 10px rgba(255, 107, 53, 0.3);
+        transition: all 0.3s ease;
+    }
+    .sidebar-open-btn:hover {
+        padding-left: 18px;
+        box-shadow: 2px 0 20px rgba(255, 107, 53, 0.5);
+    }
+    @media (max-width: 768px) {
+        .sidebar-open-btn { display: none; }
+    }
+    </style>
+    <button class="sidebar-open-btn" onclick="
+        var btn = window.parent.document.querySelector('[data-testid=baseButton-headerNoPadding]');
+        if(btn) btn.click();
+        var btn2 = window.parent.document.querySelector('button[kind=headerNoPadding]');
+        if(btn2) btn2.click();
+        var sidebar = window.parent.document.querySelector('section[data-testid=stSidebar]');
+        if(sidebar) sidebar.style.display = 'block';
+    ">▶</button>
     ''', unsafe_allow_html=True)
-    
-    # Mobile-only buttons at top when there are messages
-    if st.session_state.messages:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("➕ NEW", key="new_chat_top", use_container_width=True):
-                st.session_state.current_conversation = None
-                st.session_state.messages = []
-                st.rerun()
-        with col2:
-            if st.button("📜 HISTORY", key="history_top", use_container_width=True):
-                pass  # User will click sidebar
-        with col3:
-            if st.button("🚪 EXIT", key="logout_top", use_container_width=True):
-                st.session_state.logged_in = False
-                st.session_state.coach = None
-                st.session_state.messages = []
-                st.session_state.current_conversation = None
-                st.rerun()
     
     # Display chat history
     for msg in st.session_state.messages:

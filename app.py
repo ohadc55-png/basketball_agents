@@ -1,4 +1,4 @@
-## -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 HOOPS AI - Basketball Coaching Staff
 Virtual Locker Room with Multi-Agent System
@@ -726,6 +726,27 @@ CUSTOM_CSS = """
         .main .block-container {
             max-width: 100% !important;
         }
+        
+        /* Hide mobile buttons on desktop */
+        .mobile-only-buttons {
+            display: none !important;
+        }
+    }
+    
+    /* Mobile styles */
+    @media (max-width: 767px) {
+        .mobile-only-buttons {
+            display: flex !important;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+        }
+        
+        .mobile-only-buttons button {
+            flex: 1;
+            padding: 0.5rem !important;
+            font-size: 0.85rem !important;
+        }
     }
 </style>
 """.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
@@ -1260,6 +1281,27 @@ def render_chat(client, supabase):
     """Render chat interface"""
     coach = st.session_state.get('coach', {})
     
+    # Mobile-only buttons at top (hidden on desktop via CSS)
+    if st.session_state.messages:
+        st.markdown('<div class="mobile-only-buttons">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("➕ NEW", key="mobile_new_chat", use_container_width=True):
+                st.session_state.current_conversation = None
+                st.session_state.messages = []
+                st.rerun()
+        with col2:
+            if st.button("📜 HISTORY", key="mobile_history_chat", use_container_width=True):
+                st.info("☰ Tap the menu icon at top-left to see history")
+        with col3:
+            if st.button("🚪 EXIT", key="mobile_exit_chat", use_container_width=True):
+                st.session_state.logged_in = False
+                st.session_state.coach = None
+                st.session_state.messages = []
+                st.session_state.current_conversation = None
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
     # Display chat history
     for msg in st.session_state.messages:
         if msg["role"] == "user":
@@ -1321,6 +1363,88 @@ def render_chat(client, supabase):
         })
         st.rerun()
 
+
+def render_mobile_nav(supabase):
+    """Render mobile-only navigation buttons"""
+    coach = st.session_state.get('coach', {})
+    
+    # CSS to hide on desktop
+    st.markdown('''
+    <style>
+    @media (min-width: 768px) {
+        .mobile-nav-section {
+            display: none !important;
+        }
+    }
+    </style>
+    <div class="mobile-nav-section">
+    ''', unsafe_allow_html=True)
+    
+    # Mobile navigation buttons
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("➕ NEW", key="mobile_new_btn", use_container_width=True):
+            st.session_state.current_conversation = None
+            st.session_state.messages = []
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    with col2:
+        if st.button("📜 HISTORY", key="mobile_history_btn", use_container_width=True):
+            st.session_state.show_mobile_history = not st.session_state.get('show_mobile_history', False)
+            st.rerun()
+    
+    with col3:
+        if st.button("🚪 LOGOUT", key="mobile_logout_btn", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.coach = None
+            st.session_state.messages = []
+            st.session_state.current_conversation = None
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    # Show history panel if toggled
+    if st.session_state.get('show_mobile_history', False):
+        st.markdown('''
+        <div style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">
+                📜 CHAT HISTORY
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        conversations = get_coach_conversations(supabase, coach.get('id'))
+        
+        if not conversations:
+            st.markdown('<div style="text-align:center; color:#888; padding:0.5rem;">No previous conversations</div>', unsafe_allow_html=True)
+        else:
+            for conv in conversations[:10]:
+                title = conv.get('title', 'Untitled')[:35]
+                if len(conv.get('title', '')) > 35:
+                    title += "..."
+                
+                if st.button(f"💬 {title}", key=f"mob_conv_{conv['id']}", use_container_width=True):
+                    st.session_state.current_conversation = conv
+                    messages = get_conversation_messages(supabase, conv['id'])
+                    st.session_state.messages = []
+                    for msg in messages:
+                        st.session_state.messages.append({
+                            "role": msg['role'],
+                            "content": msg['content'],
+                            "raw_content": msg['content'],
+                            "agent": msg.get('agent', 'assistant_coach')
+                        })
+                    st.session_state.show_mobile_history = False
+                    st.rerun()
+        
+        if st.button("❌ CLOSE", key="close_mob_history", use_container_width=True):
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
 # ============================================================================
 # MAIN
 # ============================================================================
@@ -1332,6 +1456,8 @@ def main():
         st.session_state.messages = []
     if "current_conversation" not in st.session_state:
         st.session_state.current_conversation = None
+    if "show_mobile_history" not in st.session_state:
+        st.session_state.show_mobile_history = False
     
     # Initialize clients
     supabase = get_supabase_client()
@@ -1351,6 +1477,7 @@ def main():
     else:
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         render_sidebar(supabase)
+        render_mobile_nav(supabase)  # Mobile navigation
         render_header()
         render_welcome()
         render_chat(openai_client, supabase)

@@ -1281,26 +1281,69 @@ def render_chat(client, supabase):
     """Render chat interface"""
     coach = st.session_state.get('coach', {})
     
-    # Mobile-only buttons at top (hidden on desktop via CSS)
-    if st.session_state.messages:
-        st.markdown('<div class="mobile-only-buttons">', unsafe_allow_html=True)
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("➕ NEW", key="mobile_new_chat", use_container_width=True):
-                st.session_state.current_conversation = None
-                st.session_state.messages = []
+    # File upload section (can be triggered anytime)
+    if st.session_state.get('show_file_upload', False):
+        st.markdown('''
+        <div style="background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 15px; padding: 1rem; margin: 1rem 0;">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem;">📁 UPLOAD STATISTICS FILE</div>
+            <div style="color:#B0B0B0; font-size:0.85rem;">Upload CSV, Excel, or text file with player/team/game statistics</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        uploaded_file = st.file_uploader(
+            "Choose a file",
+            type=['csv', 'xlsx', 'xls', 'txt'],
+            key="stats_file_chat",
+            label_visibility="collapsed"
+        )
+        
+        analysis_type = st.selectbox(
+            "What do you want to analyze?",
+            ["Player individual stats", "Team stats", "Game stats", "Season overview", "Compare players"],
+            key="analysis_type_chat"
+        )
+        
+        col_analyze, col_cancel = st.columns(2)
+        with col_analyze:
+            if uploaded_file is not None:
+                if st.button("🔍 ANALYZE NOW", key="analyze_btn_chat", use_container_width=True):
+                    try:
+                        if uploaded_file.name.endswith('.csv'):
+                            import pandas as pd
+                            df = pd.read_csv(uploaded_file)
+                            file_content = df.to_string()
+                        elif uploaded_file.name.endswith(('.xlsx', '.xls')):
+                            import pandas as pd
+                            df = pd.read_excel(uploaded_file)
+                            file_content = df.to_string()
+                        else:
+                            file_content = uploaded_file.read().decode('utf-8')
+                        
+                        st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                        st.session_state.show_file_upload = False
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error reading file: {e}")
+        with col_cancel:
+            if st.button("❌ Cancel", key="cancel_upload_chat", use_container_width=True):
+                st.session_state.show_file_upload = False
                 st.rerun()
-        with col2:
-            if st.button("📜 HISTORY", key="mobile_history_chat", use_container_width=True):
-                st.info("☰ Tap the menu icon at top-left to see history")
-        with col3:
-            if st.button("🚪 EXIT", key="mobile_exit_chat", use_container_width=True):
-                st.session_state.logged_in = False
-                st.session_state.coach = None
-                st.session_state.messages = []
-                st.session_state.current_conversation = None
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Upload stats button (always visible)
+    if not st.session_state.get('show_file_upload', False):
+        if st.button("📁 Upload Stats File for Analysis", key="upload_stats_btn", use_container_width=False):
+            st.session_state.show_file_upload = True
+            st.rerun()
     
     # Display chat history
     for msg in st.session_state.messages:

@@ -1137,6 +1137,30 @@ def render_welcome():
     """Render welcome banner for new chats"""
     if not st.session_state.messages:
         coach = st.session_state.get('coach', {})
+        
+        # Mobile-friendly buttons at top
+        col_menu, col_new, col_history, col_exit = st.columns(4)
+        with col_menu:
+            if st.button("☰ MENU", key="menu_main", use_container_width=True):
+                st.session_state.sidebar_state = "expanded"
+                st.rerun()
+        with col_new:
+            if st.button("➕ NEW", key="new_chat_main", use_container_width=True):
+                st.session_state.current_conversation = None
+                st.session_state.messages = []
+                st.rerun()
+        with col_history:
+            if st.button("📜 HISTORY", key="history_main", use_container_width=True):
+                st.session_state.sidebar_state = "expanded"
+                st.rerun()
+        with col_exit:
+            if st.button("🚪 EXIT", key="exit_main", use_container_width=True):
+                st.session_state.logged_in = False
+                st.session_state.coach = None
+                st.session_state.messages = []
+                st.session_state.current_conversation = None
+                st.rerun()
+        
         st.markdown(f'''
         <div class="welcome-banner">
             <div class="welcome-title">👋 Hey Coach {coach.get('name', '').split()[0] if coach.get('name') else ''}!</div>
@@ -1151,41 +1175,114 @@ def render_welcome():
         </div>
         ''', unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns(3)
-        col4, col5, col6 = st.columns(3)
-        col7, col8, col9 = st.columns(3)
+        col1, col2 = st.columns(2)
+        col3, col4 = st.columns(2)
+        col5, col6 = st.columns(2)
         
         with col1:
-            if st.button("📋 ZONE OFFENSE", use_container_width=True):
-                st.session_state.pending_prompt = "What are the best strategies to beat a 2-3 zone defense?"
+            if st.button("🎯 PRACTICE PLAN\n\nBuild a 90-min practice", use_container_width=True):
+                st.session_state.pending_prompt = "Build me a 90-minute practice plan for my team, considering our age group and level."
         with col2:
-            if st.button("💪 SHOOTING DRILLS", use_container_width=True):
-                st.session_state.pending_prompt = "What are good shooting drills for my team?"
+            if st.button("📋 BEAT ZONE\n\nAttack 2-3 zone defense", use_container_width=True):
+                st.session_state.pending_prompt = "How should we attack a 2-3 zone defense? Give me specific actions and player movements."
         with col3:
-            if st.button("🥗 GAME DAY NUTRITION", use_container_width=True):
-                st.session_state.pending_prompt = "What should my players eat before and after a game?"
+            if st.button("💪 SHOOTING FORM\n\nTeach correct mechanics", use_container_width=True):
+                st.session_state.pending_prompt = "How do I teach correct shooting mechanics to my players? Break it down step by step."
         with col4:
-            if st.button("🏋️ VERTICAL JUMP", use_container_width=True):
-                st.session_state.pending_prompt = "How can I improve my players' vertical jump?"
+            if st.button("👶 FUN DRILLS\n\nGames for kids 6-10", use_container_width=True):
+                st.session_state.pending_prompt = "Give me fun and engaging basketball games and drills for kids ages 6-10."
         with col5:
-            if st.button("📊 ANALYZE STATS", use_container_width=True):
-                st.session_state.pending_prompt = "My team had 15 turnovers and only 8 assists last game. What does this tell us and how can we improve?"
+            if st.button("📊 GAME ANALYSIS\n\nAnalyze team stats", use_container_width=True):
+                st.session_state.pending_prompt = "I want to analyze my team's performance. What statistics should I provide you?"
         with col6:
-            if st.button("👶 KIDS TRAINING", use_container_width=True):
-                st.session_state.pending_prompt = "What are fun basketball drills for kids ages 6-8?"
-        with col7:
-            if st.button("🎯 תרגילי כדרור", use_container_width=True):
-                st.session_state.pending_prompt = "תן לי תרגילי כדרור מתקדמים לשחקנים שלי"
-        with col8:
-            if st.button("👶 אימון ילדים", use_container_width=True):
-                st.session_state.pending_prompt = "תן לי תרגילים כיפיים לילדים בגילאי 5-8"
-        with col9:
-            if st.button("📊 ניתוח משחק", use_container_width=True):
-                st.session_state.pending_prompt = "הקבוצה שלי איבדה 12 כדורים ועשתה 6 אסיסטים, מה אפשר לשפר?"
+            if st.button("📁 UPLOAD STATS\n\nAnalyze from file", use_container_width=True):
+                st.session_state.show_file_upload = True
+        
+        # File upload section
+        if st.session_state.get('show_file_upload', False):
+            st.markdown('''
+            <div style="background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 15px; padding: 1rem; margin: 1rem 0;">
+                <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem;">📁 UPLOAD STATISTICS FILE</div>
+                <div style="color:#B0B0B0; font-size:0.85rem;">Upload CSV, Excel, or text file with player/team/game statistics</div>
+            </div>
+            ''', unsafe_allow_html=True)
+            
+            uploaded_file = st.file_uploader(
+                "Choose a file",
+                type=['csv', 'xlsx', 'xls', 'txt'],
+                key="stats_file",
+                label_visibility="collapsed"
+            )
+            
+            analysis_type = st.selectbox(
+                "What do you want to analyze?",
+                ["Player individual stats", "Team stats", "Game stats", "Season overview", "Compare players"],
+                key="analysis_type"
+            )
+            
+            if uploaded_file is not None:
+                try:
+                    # Read file content
+                    if uploaded_file.name.endswith('.csv'):
+                        import pandas as pd
+                        df = pd.read_csv(uploaded_file)
+                        file_content = df.to_string()
+                    elif uploaded_file.name.endswith(('.xlsx', '.xls')):
+                        import pandas as pd
+                        df = pd.read_excel(uploaded_file)
+                        file_content = df.to_string()
+                    else:
+                        file_content = uploaded_file.read().decode('utf-8')
+                    
+                    if st.button("🔍 ANALYZE NOW", use_container_width=True):
+                        st.session_state.pending_prompt = f"""Please analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                        st.session_state.show_file_upload = False
+                        st.rerun()
+                        
+                except Exception as e:
+                    st.error(f"Error reading file: {e}")
+            
+            if st.button("❌ Cancel", use_container_width=True):
+                st.session_state.show_file_upload = False
+                st.rerun()
 
 def render_chat(client, supabase):
     """Render chat interface"""
     coach = st.session_state.get('coach', {})
+    
+    # Mobile-friendly buttons at top when there are messages
+    if st.session_state.messages:
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+        with col1:
+            if st.button("☰ MENU", key="menu_top", use_container_width=True):
+                st.session_state.sidebar_state = "expanded"
+                st.rerun()
+        with col2:
+            if st.button("➕ NEW", key="new_chat_top", use_container_width=True):
+                st.session_state.current_conversation = None
+                st.session_state.messages = []
+                st.rerun()
+        with col3:
+            if st.button("📜 HISTORY", key="history_top", use_container_width=True):
+                st.session_state.sidebar_state = "expanded"
+                st.rerun()
+        with col4:
+            if st.button("🚪 EXIT", key="logout_top", use_container_width=True):
+                st.session_state.logged_in = False
+                st.session_state.coach = None
+                st.session_state.messages = []
+                st.session_state.current_conversation = None
+                st.rerun()
     
     # Display chat history
     for msg in st.session_state.messages:

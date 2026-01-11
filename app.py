@@ -1010,7 +1010,29 @@ with st.sidebar:
         nav_options.append("📁 Archive")
     nav_options.append("⚙️ Manage Competitions")
     
-    track = st.selectbox("Select View", nav_options, label_visibility="collapsed")
+    # Initialize session state for navigation if not exists
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "📊 Overview"
+    
+    # Make sure current page is still valid (competition might have been deleted)
+    if st.session_state.current_page not in nav_options:
+        st.session_state.current_page = "📊 Overview"
+    
+    # Get the index of current selection
+    current_index = nav_options.index(st.session_state.current_page) if st.session_state.current_page in nav_options else 0
+    
+    track = st.selectbox(
+        "Select View", 
+        nav_options, 
+        index=current_index,
+        key="nav_selectbox",
+        label_visibility="collapsed"
+    )
+    
+    # Update session state when selection changes
+    if track != st.session_state.current_page:
+        st.session_state.current_page = track
+        st.rerun()
     
     # Show competition logo below dropdown if a competition is selected
     if track.startswith("⚽ "):
@@ -1442,6 +1464,6 @@ elif track.startswith("⚽ "):
 st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("""
     <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; padding: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-        Elite Football Tracker v3.0 | Built with ❤️ using Babi Group Pelicens
+        Elite Football Tracker v3.0 | Built with ❤️ using Streamlit
     </div>
 """, unsafe_allow_html=True)

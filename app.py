@@ -959,7 +959,7 @@ with st.sidebar:
     st.image(APP_LOGO_URL, use_container_width=True)
     
     if error_msg:
-        st.error("⚠️ Offline Mode")
+        st.error(⚠️ Offline Mode")
         if "service_account" in st.secrets:
             bot_email = st.secrets["service_account"].get("client_email", "Unknown")
             st.info(f"🤖 Bot Email:\n`{bot_email}`")
@@ -1442,6 +1442,6 @@ elif track.startswith("⚽ "):
 st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("""
     <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; padding: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-        Elite Football Tracker v3.0 | Built with ❤️ using Streamlit
+        Elite Football Tracker v3.0 | Built with ❤️ using Babi Group Pelicens
     </div>
 """, unsafe_allow_html=True)

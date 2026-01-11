@@ -1010,14 +1010,18 @@ with st.sidebar:
         nav_options.append("📁 Archive")
     nav_options.append("⚙️ Manage Competitions")
     
-    # Handle navigation from Overview buttons
+    # Handle navigation from Overview buttons or after actions
     default_index = 0
     if 'nav_to' in st.session_state:
         if st.session_state['nav_to'] in nav_options:
             default_index = nav_options.index(st.session_state['nav_to'])
-        del st.session_state['nav_to']
+        # Don't delete nav_to here - let it persist until changed
     
-    track = st.selectbox("Select View", nav_options, index=default_index, label_visibility="collapsed")
+    track = st.selectbox("Select View", nav_options, index=default_index, label_visibility="collapsed", key="nav_select")
+    
+    # Update nav_to when user manually changes selection
+    if track != st.session_state.get('nav_to', ''):
+        st.session_state['nav_to'] = track
     
     # Show competition logo below dropdown if a competition is selected
     if track.startswith("⚽ "):
@@ -1402,6 +1406,8 @@ elif track.startswith("⚽ "):
                             ws.append_row(new_row, value_input_option='USER_ENTERED')
                             connect_to_sheets.clear()
                             st.success(f"✅ Added: {home_team} vs {away_team}")
+                            # Stay on the same competition page after adding
+                            st.session_state['nav_to'] = f"⚽ {comp_name}"
                             st.rerun()
                         else:
                             st.error("❌ Could not connect to worksheet!")

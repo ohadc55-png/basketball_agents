@@ -1010,29 +1010,23 @@ with st.sidebar:
         nav_options.append("📁 Archive")
     nav_options.append("⚙️ Manage Competitions")
     
-    # Initialize session state for navigation if not exists
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = "📊 Overview"
+    # Use session_state with the selectbox key directly
+    # Initialize only if not exists or if current value is invalid
+    if 'nav_selection' not in st.session_state:
+        st.session_state.nav_selection = "📊 Overview"
     
-    # Make sure current page is still valid (competition might have been deleted)
-    if st.session_state.current_page not in nav_options:
-        st.session_state.current_page = "📊 Overview"
+    # Validate that current selection still exists in options
+    if st.session_state.nav_selection not in nav_options:
+        st.session_state.nav_selection = "📊 Overview"
     
-    # Get the index of current selection
-    current_index = nav_options.index(st.session_state.current_page) if st.session_state.current_page in nav_options else 0
-    
+    # Create selectbox with session state
     track = st.selectbox(
         "Select View", 
         nav_options, 
-        index=current_index,
-        key="nav_selectbox",
+        index=nav_options.index(st.session_state.nav_selection),
+        key="nav_selection",
         label_visibility="collapsed"
     )
-    
-    # Update session state when selection changes
-    if track != st.session_state.current_page:
-        st.session_state.current_page = track
-        st.rerun()
     
     # Show competition logo below dropdown if a competition is selected
     if track.startswith("⚽ "):
@@ -1394,10 +1388,15 @@ elif track.startswith("⚽ "):
                             stake,
                             0
                         ]
-                        ws.append_row(new_row)
-                        connect_to_sheets.clear()
-                        st.success(f"✅ Added: {home_team} vs {away_team}")
-                        st.rerun()
+                        try:
+                            ws.append_row(new_row)
+                            connect_to_sheets.clear()
+                            st.success(f"✅ Added: {home_team} vs {away_team}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error saving to sheet: {str(e)}")
+                    else:
+                        st.error("❌ Could not connect to worksheet!")
             else:
                 st.error("⚠️ Please enter both team names")
     

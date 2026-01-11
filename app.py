@@ -1386,23 +1386,27 @@ elif track.startswith("⚽ "):
         if submitted:
             if home_team and away_team:
                 with st.spinner('⚽ Adding match...'):
-                    ws = get_matches_worksheet()
-                    if ws:
-                        # Fixed: Removed the extra 0 at the end
-                        # Columns: A=Date, B=Competition, C=Home Team, D=Away Team, E=Odds, F=Result, G=Stake
-                        new_row = [
-                            str(datetime.date.today()),  # A - Date
-                            comp_name,                    # B - Competition
-                            home_team,                    # C - Home Team
-                            away_team,                    # D - Away Team
-                            odds,                         # E - Odds
-                            result,                       # F - Result
-                            stake                         # G - Stake
-                        ]
-                        ws.append_row(new_row)
-                        connect_to_sheets.clear()
-                        st.success(f"✅ Added: {home_team} vs {away_team}")
-                        st.rerun()
+                    try:
+                        ws = get_matches_worksheet()
+                        if ws:
+                            # Columns: A=Date, B=Competition, C=Home Team, D=Away Team, E=Odds, F=Result, G=Stake
+                            new_row = [
+                                str(datetime.date.today()),  # A - Date
+                                comp_name,                    # B - Competition
+                                home_team,                    # C - Home Team
+                                away_team,                    # D - Away Team
+                                str(odds),                    # E - Odds (as string)
+                                result,                       # F - Result
+                                str(stake)                    # G - Stake (as string)
+                            ]
+                            ws.append_row(new_row, value_input_option='USER_ENTERED')
+                            connect_to_sheets.clear()
+                            st.success(f"✅ Added: {home_team} vs {away_team}")
+                            st.rerun()
+                        else:
+                            st.error("❌ Could not connect to worksheet!")
+                    except Exception as e:
+                        st.error(f"❌ Error adding match: {str(e)}")
             else:
                 st.error("⚠️ Please enter both team names")
     

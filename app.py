@@ -13,7 +13,7 @@ DEFAULT_STAKE = 30.0
 DEFAULT_BANKROLL = 5000.0
 BANKROLL_CELL_ROW = 1
 BANKROLL_CELL_COL = 10
-RESULT_COL = 6  # Column F = Result
+RESULT_COL = 6
 
 # Sheet names
 MATCHES_SHEET = 0  # First sheet (index 0)
@@ -1010,18 +1010,7 @@ with st.sidebar:
         nav_options.append("📁 Archive")
     nav_options.append("⚙️ Manage Competitions")
     
-    # Handle navigation from Overview buttons or after actions
-    default_index = 0
-    if 'nav_to' in st.session_state:
-        if st.session_state['nav_to'] in nav_options:
-            default_index = nav_options.index(st.session_state['nav_to'])
-        # Don't delete nav_to here - let it persist until changed
-    
-    track = st.selectbox("Select View", nav_options, index=default_index, label_visibility="collapsed", key="nav_select")
-    
-    # Update nav_to when user manually changes selection
-    if track != st.session_state.get('nav_to', ''):
-        st.session_state['nav_to'] = track
+    track = st.selectbox("Select View", nav_options, label_visibility="collapsed")
     
     # Show competition logo below dropdown if a competition is selected
     if track.startswith("⚽ "):
@@ -1101,12 +1090,6 @@ if track == "📊 Overview":
                     </div>
                 </div>
             """, unsafe_allow_html=True)
-            
-            # Button to navigate to competition page
-            if st.button(f"➡️ Go to {comp_name}", key=f"goto_{comp_name}", use_container_width=True):
-                st.session_state['nav_to'] = f"⚽ {comp_name}"
-                st.rerun()
-                
     elif not active_competitions:
         st.markdown("""
             <div class="info-message">
@@ -1336,19 +1319,6 @@ elif track.startswith("⚽ "):
         </div>
     """, unsafe_allow_html=True)
     
-    # Close Competition Button (small, right-aligned)
-    col_spacer, col_close = st.columns([4, 1])
-    with col_close:
-        if st.button("🔒 Close", key=f"close_comp_{comp_name}", help="Close this competition"):
-            with st.spinner('⚽'):
-                ws = get_competitions_worksheet()
-                if ws:
-                    ws.update_cell(comp_info['row'], 8, "Closed")  # Column H = Status
-                    ws.update_cell(comp_info['row'], 10, str(datetime.date.today()))  # Column J = Closed_Date
-                    connect_to_sheets.clear()
-                    st.success(f"✅ '{comp_name}' closed!")
-                    st.rerun()
-    
     # Next Bet Display
     next_bet = next_stakes.get(comp_name, comp_info['default_stake'])
     st.markdown(f"""
@@ -1390,29 +1360,22 @@ elif track.startswith("⚽ "):
         if submitted:
             if home_team and away_team:
                 with st.spinner('⚽ Adding match...'):
-                    try:
-                        ws = get_matches_worksheet()
-                        if ws:
-                            # Columns: A=Date, B=Competition, C=Home Team, D=Away Team, E=Odds, F=Result, G=Stake
-                            new_row = [
-                                str(datetime.date.today()),  # A - Date
-                                comp_name,                    # B - Competition
-                                home_team,                    # C - Home Team
-                                away_team,                    # D - Away Team
-                                str(odds),                    # E - Odds (as string)
-                                result,                       # F - Result
-                                str(stake)                    # G - Stake (as string)
-                            ]
-                            ws.append_row(new_row, value_input_option='USER_ENTERED')
-                            connect_to_sheets.clear()
-                            st.success(f"✅ Added: {home_team} vs {away_team}")
-                            # Stay on the same competition page after adding
-                            st.session_state['nav_to'] = f"⚽ {comp_name}"
-                            st.rerun()
-                        else:
-                            st.error("❌ Could not connect to worksheet!")
-                    except Exception as e:
-                        st.error(f"❌ Error adding match: {str(e)}")
+                    ws = get_matches_worksheet()
+                    if ws:
+                        new_row = [
+                            str(datetime.date.today()),
+                            comp_name,
+                            home_team,
+                            away_team,
+                            odds,
+                            result,
+                            stake,
+                            0
+                        ]
+                        ws.append_row(new_row)
+                        connect_to_sheets.clear()
+                        st.success(f"✅ Added: {home_team} vs {away_team}")
+                        st.rerun()
             else:
                 st.error("⚠️ Please enter both team names")
     
@@ -1479,6 +1442,6 @@ elif track.startswith("⚽ "):
 st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("""
     <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; padding: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-       Goal Metric v3.0 | Built with ❤️ using BabiGroup Pelicens
+        Elite Football Tracker v3.0 | Built with ❤️ using Streamlit
     </div>
 """, unsafe_allow_html=True)

@@ -1,1468 +1,1601 @@
+# -*- coding: utf-8 -*-
+"""
+HOOPS AI - Basketball Coaching Staff
+Virtual Locker Room with Multi-Agent System
+Powered by OpenAI GPT + Supabase
+"""
+
 import streamlit as st
-import pandas as pd
-import gspread
-from google.oauth2.service_account import Credentials
-import datetime
+from openai import OpenAI
+from supabase import create_client
+from enum import Enum
+from datetime import datetime
 
-# --- 1. CONFIGURATION ---
-APP_LOGO_URL = "https://i.postimg.cc/8Cr6SypK/yzwb-ll-sm.png"
-BG_IMAGE_URL = "https://i.postimg.cc/GmFZ4KS7/Gemini-Generated-Image-k1h11zk1h11zk1h1.png"
+# ============================================================================
+# PAGE CONFIG - Must be first Streamlit command
+# ============================================================================
+st.set_page_config(
+    page_title="HOOPS AI - Your Personal Assistant Coach",
+    page_icon="favicon.png",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Constants
-DEFAULT_STAKE = 30.0
-DEFAULT_BANKROLL = 5000.0
-BANKROLL_CELL_ROW = 1
-BANKROLL_CELL_COL = 10
-RESULT_COL = 6
+# ============================================================================
+# CONSTANTS
+# ============================================================================
+LOGO_URL = "https://i.postimg.cc/DfYpGxMy/Fashion-Bran-Logo.png"
+BACKGROUND_URL = "https://i.postimg.cc/nr6WXxHh/wlm-kdwrsl.jpg"
 
-# Sheet names
-MATCHES_SHEET = 0  # First sheet (index 0)
-COMPETITIONS_SHEET = "Competitions"
+AGE_GROUPS = ["U10", "U12", "U14", "U16", "U18", "Senior"]
+LEVELS = ["Beginner", "League", "Competitive", "Professional"]
 
-st.set_page_config(page_title="Elite Football Tracker", layout="wide", page_icon=APP_LOGO_URL)
+class Agent(Enum):
+    ASSISTANT_COACH = "assistant_coach"
+    TACTICIAN = "tactician"
+    SKILLS_COACH = "skills_coach"
+    NUTRITIONIST = "nutritionist"
+    STRENGTH_COACH = "strength_coach"
+    ANALYST = "analyst"
+    YOUTH_COACH = "youth_coach"
 
-# --- 2. CSS STYLING ---
-st.markdown(f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
+AGENT_INFO = {
+    Agent.ASSISTANT_COACH: {
+        "name": "ASSISTANT COACH",
+        "icon": "🎯",
+        "title": "General Manager",
+        "specialty": "Team Leadership & Strategy",
+        "color": "#FF6B35"
+    },
+    Agent.TACTICIAN: {
+        "name": "THE TACTICIAN",
+        "icon": "📋",
+        "title": "Strategic Mastermind",
+        "specialty": "X's & O's Expert",
+        "color": "#00D4FF"
+    },
+    Agent.SKILLS_COACH: {
+        "name": "SKILLS COACH",
+        "icon": "💪",
+        "title": "Player Development",
+        "specialty": "Training & Drills",
+        "color": "#00FF87"
+    },
+    Agent.NUTRITIONIST: {
+        "name": "SPORTS NUTRITIONIST",
+        "icon": "🥗",
+        "title": "Nutrition Expert",
+        "specialty": "Personalized Diet Plans",
+        "color": "#FFD700"
+    },
+    Agent.STRENGTH_COACH: {
+        "name": "STRENGTH & CONDITIONING",
+        "icon": "🏋️",
+        "title": "Physical Development",
+        "specialty": "Athletic Performance",
+        "color": "#FF4500"
+    },
+    Agent.ANALYST: {
+        "name": "THE ANALYST",
+        "icon": "📊",
+        "title": "Data & Statistics Expert",
+        "specialty": "Performance Analytics",
+        "color": "#9370DB"
+    },
+    Agent.YOUTH_COACH: {
+        "name": "YOUTH COACH",
+        "icon": "👶",
+        "title": "Kids Development Expert",
+        "specialty": "Ages 5-12 Specialist",
+        "color": "#FF69B4"
+    }
+}
+
+def get_system_prompt(agent, coach_profile=None):
+    """Generate system prompt with coach profile context"""
     
-    * {{
-        font-family: 'Montserrat', sans-serif;
-    }}
+    base_prompts = {
+        Agent.ASSISTANT_COACH: """You are an elite Head Assistant Coach, acting as a strategic advisor and manager of team culture. You balance high-performance efficiency with educational pedagogy.
+
+CORE PRINCIPLES:
+- Prioritize role modeling and the "Spirit of Sport" (health, fair play, honesty)
+- Define success by skill improvement and "process" rather than just the scoreboard
+- Maintain strict integrity regarding anti-doping and safe environments
+
+PEDAGOGY & LEARNING:
+- Utilize the four educator roles: Facilitator, Expert, Evaluator, and Coach
+- Apply the 4 stages of motor learning: Coordination, Control, Skill, and Automaticity
+- Use "Implicit Learning" and analogies for resilience under stress
+- Understand that learning is non-linear - expect plateaus and breakthroughs
+
+ELITE MANAGEMENT:
+- Oversee support staff and manage administrative and parental relationships
+- Analyze team efficiency using PAWS (Player Adjusted Wins Score) and possession-based metrics
+- Manage high-performance logistics, including sleep and recovery for international travel
+- Handle team culture, communication protocols, and conflict resolution
+- Plan and structure practices, seasons, and development programs
+
+CRITICAL APPROACH:
+- Balance winning with player development based on age group
+- Create positive learning environments where mistakes are growth opportunities
+- Manage relationships with players, parents, staff, and administration professionally
+- Use data to support decisions but never lose sight of the human element""",
+
+        Agent.TACTICIAN: """You are a Master Tactician responsible for offensive and defensive systems, transition protocols, and in-game strategic adjustments.
+
+DEFENSIVE STRATEGY:
+- Implement Man-to-Man as the mandatory base, focusing on the "Split Line" and "Help and Recover"
+- Apply advanced screen defenses: Lock and Trail, Ice (Push), and Weak
+- Manage elite Match-up Zone systems and 2-2-1 full-court trapping protocols
+- Teach closeout techniques: "High Hands", contest without fouling
+- Rotations and help-side principles for team defense
+
+OFFENSIVE STRATEGY:
+- Deploy 5-Out and 4-Out 1-In Motion offenses based on "Read & React" principles
+- Manage structured Secondary Breaks and End-of-Game (EBO) set plays
+- Dismantle zone defenses using skip passes, gap penetration, and "Short Corner" positioning
+- Design ATOs (After Time Out), SLOBs (Sideline Out of Bounds), BLOBs (Baseline Out of Bounds)
+- Spacing principles: maintain 12-15 feet between players, create driving lanes
+
+TRANSITION GAME:
+- Primary break: push the ball, fill lanes, attack before defense sets
+- Secondary break: structured actions off the primary
+- Transition defense: sprint back, protect the paint, match up
+
+ANALYTICS & SCOUTING:
+- Provide "cures, not diagnoses" in scouting reports
+- Adjust tempo and player rotations based on points per possession and efficiency data
+- Identify opponent tendencies and create game-specific strategies
+- Use video and statistics to prepare for opponents
+
+CRITICAL APPROACH:
+- Keep systems simple enough for players to execute under pressure
+- Adjust tactics based on personnel - not every system fits every team
+- In-game adjustments: read and react to what the opponent is doing
+- Always have counter-actions ready when opponents adjust""",
+
+        Agent.SKILLS_COACH: """You are a Professional Skills Coach - a technical development specialist focused on individual biomechanics, technical execution, and the "Game-Based" approach to training.
+
+TECHNICAL MASTERY - SHOOTING:
+- Teach shooting using the BEEF principle (Balance, Eyes, Elbow, Follow-through)
+- Refine the "Shooter's Catch" - ready to shoot before receiving the ball
+- Shot preparation: hop vs 1-2 step, turn and face
+- Free throw routine consistency and mental preparation
+- Range development: start close, expand with proper form
+
+TECHNICAL MASTERY - FOOTWORK:
+- Advanced footwork: Euro-step, Jump stop, Stride stop, Pro hop
+- Triple threat positioning and jab step series
+- Pivot foot mastery: front pivot, reverse pivot, drop step
+- Post footwork: drop step, jump hook, up-and-under
+
+TECHNICAL MASTERY - BALL HANDLING:
+- Master elite penetration tools: Snake dribble, Push dribble, Jab steps
+- Pound dribbles, crossovers, between-the-legs, behind-the-back
+- Change of pace and direction - sell the move
+- Combo moves: crossover to between-legs, hesitation to crossover
+- Weak hand development - equal proficiency required
+
+TECHNICAL MASTERY - FINISHING:
+- Layup package: finger roll, power finish, reverse, floater
+- Contact finishing: absorb and finish through contact
+- Shot fakes and up-and-under moves at the rim
+
+PEDAGOGICAL METHODOLOGY:
+- Replace static drills with "Game-Based" activities to teach decision-making
+- Maintain "Perception-Action Coupling" by including defenders in technical drills
+- Use "Discovery Learning" and constraints to force players to find technical solutions
+- Progression: technique → speed → pressure → game-like
+
+PHYSICAL CONDITIONING FOR SKILLS:
+- Train Alactic systems (<15 seconds) using a 1:8 work-to-rest ratio for maximum explosiveness
+- Implement lockdown defensive individual skills: "Big to Bigger" sliding and high-hands "Close Outs"
+- Balance skill work with appropriate rest for quality repetitions
+
+CRITICAL APPROACH:
+- Individualize training based on player's current level and goals
+- Quality over quantity - perfect practice makes perfect
+- Video analysis to show players their technique vs ideal technique
+- Break complex skills into teachable components, then integrate""",
+
+        Agent.NUTRITIONIST: """You are an expert Sports Nutritionist specializing in basketball players of ALL age groups.
+
+YOUR EXPERTISE:
+- Personalized nutrition plans based on individual player data (age, weight, height, position, activity level)
+- Pre-game, during-game, and post-game nutrition strategies
+- Hydration protocols for training and competition
+- Age-appropriate nutrition (youth players need different approaches than adults)
+- Muscle building vs. weight management diets
+- Supplement guidance (age-appropriate, safe, legal)
+- Recovery nutrition and sleep optimization
+- Dealing with picky eaters (especially young players)
+
+CRITICAL APPROACH:
+- ALWAYS ask for specific player data before giving recommendations: age, weight, height, position, training frequency, goals
+- Create PERSONALIZED meal plans - never generic advice
+- Consider cultural food preferences and availability
+- Adjust recommendations based on game schedule and training intensity
+- For youth players: focus on growth, development, and healthy habits
+- For adult players: focus on performance optimization and recovery
+
+Provide specific meal plans, grocery lists, and practical recipes when asked.""",
+
+        Agent.STRENGTH_COACH: """You are an elite Strength & Conditioning Coach specializing in basketball.
+
+YOUR EXPERTISE:
+- Age-specific athletic development:
+  * U10-U12: Coordination, balance, agility, FUN movement patterns, bodyweight exercises
+  * U14-U16: Introduction to resistance training, explosive power foundation, jump training basics
+  * U18+: Full strength programs, plyometrics, power development, vertical jump optimization
+- Basketball-specific physical attributes: vertical leap, lateral quickness, core stability, injury prevention
+- Periodization: weekly, monthly, and yearly training plans
+- Load management based on game schedule and competition calendar
+- Individual player assessment and personalized programs
+- Injury prevention and prehab exercises
+- Recovery protocols and deload weeks
+
+CRITICAL APPROACH:
+- ALWAYS ask for player data before programming: age, training history, current fitness level, injury history, goals
+- Create INDIVIDUALIZED programs - never one-size-fits-all
+- Consider the basketball practice and game schedule when designing strength work
+- Build programs that complement basketball training, not compete with it
+- For young players: emphasize movement quality over load
+- For older players: progressive overload with proper periodization
+
+Provide detailed workout plans with sets, reps, rest periods, and exercise descriptions.
+Can create daily, weekly, monthly, and seasonal training programs based on team schedule and goals.""",
+
+        Agent.ANALYST: """You are an elite Basketball Analytics Expert and Performance Analyst.
+
+YOUR EXPERTISE:
+- Team Statistics Analysis:
+  * Turnovers vs Assists ratio - identifying ball movement issues
+  * Shot selection analysis (2PT vs 3PT attempts, efficiency, shot zones)
+  * Free throw rate and drawing fouls
+  * Offensive/Defensive efficiency ratings
+  * Pace and possession analysis
+  * Rebounding (offensive/defensive) and second chance points
+
+- Player Statistics Analysis:
+  * Individual scoring efficiency (TS%, eFG%, Points per possession)
+  * Usage rate and ball dominance
+  * Plus/minus and impact metrics
+  * Shot charts and hot zones
+  * Assist to turnover ratio
+  * Clutch performance (last 5 minutes, close games)
+
+- Actionable Insights:
+  * If high turnovers → analyze WHO is turning it over and WHEN (transition vs halfcourt, early vs late clock)
+  * If low assists → identify if it's personnel, spacing, or system issue
+  * If poor shooting → break down by shot type, defender proximity, catch-and-shoot vs off-dribble
+  * Recommend lineup changes based on data
+  * Identify which player should have the ball in crucial moments
+  * Suggest style-of-play adjustments based on team strengths/weaknesses
+
+- Opponent Scouting:
+  * Identify opponent tendencies and weaknesses
+  * Suggest game plans based on matchup data
+  * Key players to target or avoid
+
+CRITICAL APPROACH:
+- ALWAYS ask for specific data/statistics before providing analysis
+- Don't guess - request numbers: "How many turnovers? How many assists? What's the shooting breakdown?"
+- Provide SPECIFIC, ACTIONABLE recommendations - not generic advice
+- Use data to support every recommendation
+- Connect statistics to practical on-court solutions
+- Consider context: age group, competition level, team goals
+
+When given stats, provide:
+1. What the numbers tell us (diagnosis)
+2. Why it might be happening (root cause)
+3. What to do about it (actionable solutions)
+4. How to measure improvement (KPIs to track)""",
+
+        Agent.YOUTH_COACH: """You are an expert Youth Basketball Coach specializing in children ages 5-12.
+
+YOUR PHILOSOPHY:
+- FUN FIRST - If kids aren't having fun, they won't learn or stay in the sport
+- Development over winning - focus on long-term player development, not short-term results
+- Every child is different - adapt to individual learning styles and abilities
+- Positive reinforcement - build confidence through encouragement
+- Age-appropriate expectations - don't expect adult skills from children
+
+AGE-SPECIFIC APPROACH:
+
+MINI BASKETBALL (Ages 5-8):
+- Focus: Basic motor skills, coordination, balance, FUN
+- Ball handling: Small balls, basic dribbling games
+- Shooting: Lowered baskets, proper form introduction
+- Games: Tag games with basketballs, relay races, simple 1v1 and 2v2
+- Attention span: 10-15 minutes per activity MAX, then switch
+- NO complex plays or tactics - let them play freely
+- Key skills: Catching, passing (chest pass only), basic dribble, layups
+
+YOUTH (Ages 9-12):
+- Focus: Fundamental skills, teamwork introduction, game understanding
+- Ball handling: Both hands, basic moves (crossover, between legs intro)
+- Shooting: Correct form emphasis, free throws, short-range shots
+- Defense: Stance, sliding, basic concepts (no complex schemes)
+- Games: 3v3, 4v4, modified 5v5 with simple rules
+- Attention span: 20-30 minutes per activity
+- Introduce: Basic spacing, give-and-go, pick concepts (age 11-12)
+- Key skills: Triple threat, pivot footwork, passing variety, boxing out
+
+TRAINING SESSION STRUCTURE:
+1. Dynamic warm-up with ball (5-10 min) - fun and active
+2. Skill station work (15-20 min) - rotate every 5 min
+3. Game-like drills/scrimmage (15-20 min) - apply skills
+4. Fun game/competition (5-10 min) - end on high note
+
+CRITICAL APPROACH:
+- ALWAYS ask the age of players before giving advice
+- Use GAMES to teach skills, not boring repetitive drills
+- Keep instructions SHORT and SIMPLE
+- Demonstrate more, talk less
+- Celebrate effort, not just results
+- NEVER yell or criticize harshly - redirect positively
+- Include ALL players, not just the talented ones
+
+WHAT TO AVOID:
+- Zone defenses before age 12
+- Full court press before age 10
+- Complex plays with more than 2 actions
+- Position specialization before age 12
+- Excessive focus on winning
+- Comparing kids to each other
+- Long explanations - keep it simple!"""
+    }
     
-    [data-testid="stAppViewContainer"] {{
-        background-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url("{BG_IMAGE_URL}");
-        background-attachment: fixed; 
+    prompt = base_prompts[agent]
+    
+    # Add coach profile context if available
+    if coach_profile:
+        prompt += f"""
+
+COACH PROFILE - Adapt your answers accordingly:
+- Coach Name: {coach_profile.get('name', 'Unknown')}
+- Team: {coach_profile.get('team_name', 'Unknown')}
+- Age Group: {coach_profile.get('age_group', 'Unknown')}
+- Level: {coach_profile.get('level', 'Unknown')}
+
+IMPORTANT: Tailor your advice to the {coach_profile.get('age_group', '')} age group and {coach_profile.get('level', '')} level!"""
+    
+    # Add accuracy and honesty instructions to ALL agents
+    prompt += """
+
+CRITICAL RULES FOR ALL RESPONSES:
+1. BE PRECISE - Only provide information you are confident about. No guessing.
+2. BE HONEST - If you don't know something or are unsure, say it clearly: "I don't have enough information" or "I'm not certain about this"
+3. NO VAGUE ANSWERS - Avoid generic or wishy-washy responses. Be specific and actionable.
+4. ASK WHEN NEEDED - If you need more information to give a good answer, ASK for it. Don't assume.
+5. ADMIT LIMITATIONS - If a question is outside your expertise or requires real-time data you don't have, say so.
+6. SOURCES - If recommending something specific (exercise, diet, play), explain WHY it works.
+7. SAFETY FIRST - If unsure about safety implications (nutrition, training load), err on the side of caution and recommend consulting a professional.
+
+IMPORTANT: Detect the user's language and respond in the SAME language (Hebrew or English)."""
+    
+    return prompt
+
+ROUTER_PROMPT = """You are a routing assistant for a basketball coaching app.
+
+AGENTS AVAILABLE:
+- TACTICIAN: ONLY for X's & O's, plays, offensive/defensive schemes, zones, ATOs, pick & roll, spacing, game strategy during play
+- SKILLS_COACH: basketball drills, shooting technique, dribbling, footwork (ages 13+)
+- NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
+- STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
+- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
+- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development
+- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, scheduling, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts, coach development
+
+IMPORTANT DISTINCTIONS:
+- "How to run a practice" → ASSISTANT_COACH (not TACTICIAN)
+- "How to manage players" → ASSISTANT_COACH (not TACTICIAN)
+- "Team communication" → ASSISTANT_COACH
+- "How to beat zone defense" → TACTICIAN
+- "Pick and roll coverage" → TACTICIAN
+- "Offensive sets" → TACTICIAN
+
+CURRENT SITUATION:
+Previous agent: {previous_agent}
+Agent's last message: {previous_message}
+User's response: {question}
+
+ROUTING RULES:
+1. If the previous agent ASKED FOR INFORMATION and the user is PROVIDING that information → STAY with the SAME agent
+2. If the user mentions ages 5-12, kids, children, mini basketball → YOUTH_COACH
+3. If about team MANAGEMENT, PLANNING, COMMUNICATION, LEADERSHIP → ASSISTANT_COACH
+4. If about ON-COURT TACTICS, PLAYS, SCHEMES → TACTICIAN
+5. Numbers, measurements, statistics responses are ALWAYS continuations → STAY with same agent
+6. When in doubt → STAY with the same agent
+
+Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
+
+
+ROUTER_PROMPT_NO_CONTEXT = """Determine which coach should answer this basketball question.
+
+AGENTS:
+- TACTICIAN: ONLY for X's & O's, plays, offensive/defensive schemes, zones, ATOs, pick & roll, spacing, game strategy during play
+- SKILLS_COACH: basketball drills, shooting technique, dribbling, footwork (ages 13+)
+- NUTRITIONIST: food, diet, meals, nutrition, eating, supplements, meal plans
+- STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
+- ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
+- YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development
+- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, scheduling, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts
+
+IMPORTANT DISTINCTIONS:
+- "How to run a practice" → ASSISTANT_COACH (not TACTICIAN)
+- "How to manage players" → ASSISTANT_COACH (not TACTICIAN)
+- "Team communication" → ASSISTANT_COACH
+- "Season planning" → ASSISTANT_COACH
+- "How to beat zone defense" → TACTICIAN
+- "Pick and roll coverage" → TACTICIAN
+- "Offensive sets" → TACTICIAN
+
+Question: {question}
+
+Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
+
+# ============================================================================
+# CSS STYLING
+# ============================================================================
+CUSTOM_CSS = """
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+    
+    .stApp {
+        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('BACKGROUND_URL_PLACEHOLDER');
         background-size: cover;
-    }}
+        background-position: center;
+        background-attachment: fixed;
+    }
     
-    /* Make text white on the main background (stadium image) */
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] h1,
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] h2,
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] h3,
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] h4,
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] p,
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] span,
-    [data-testid="stAppViewContainer"] > div > div > div > div > section[data-testid="stMain"] label {{
-        color: white !important;
-    }}
+    #MainMenu, footer, header {visibility: hidden;}
     
-    /* Sidebar - Dark text on light background */
-    [data-testid="stSidebar"] {{
-        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%) !important;
-    }}
+    /* Global text color - prevent dark text on dark background */
+    .stApp p, .stApp span, .stApp li, .stApp label, .stApp div {
+        color: #FFFFFF;
+    }
     
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] h4,
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] .stMarkdown {{
-        color: #2d3748 !important;
-    }}
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 1200px;
+    }
     
-    [data-testid="stSidebar"] [data-testid="stMetricValue"] {{
-        color: #1a365d !important;
-    }}
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(13,13,13,0.95) 0%, rgba(26,26,26,0.95) 50%, rgba(13,13,13,0.95) 100%);
+        border-right: 1px solid rgba(255, 107, 53, 0.3);
+    }
     
-    [data-testid="stSidebar"] [data-testid="stMetricLabel"] {{
-        color: #4a5568 !important;
-    }}
+    [data-testid="stSidebar"] * {
+        color: #FFFFFF !important;
+    }
     
-    /* Form elements - Labels should be WHITE (they're on dark background) */
-    [data-testid="stForm"] label {{
-        color: white !important;
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: rgba(30, 30, 30, 0.8) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        color: #FFFFFF !important;
         font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5) !important;
-    }}
+    }
     
-    [data-testid="stForm"] input {{
-        color: #2d3748 !important;
-    }}
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+        color: #FF6B35 !important;
+    }
     
-    /* Radio buttons in form - WHITE text */
-    [data-testid="stForm"] [data-testid="stMarkdownContainer"] {{
-        color: white !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5) !important;
-    }}
-    
-    [data-testid="stForm"] [data-baseweb="radio"] {{
-        color: white !important;
-    }}
-    
-    [data-testid="stForm"] [data-baseweb="radio"] div {{
-        color: white !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5) !important;
-    }}
-    
-    [data-testid="stForm"] .stRadio label {{
-        color: white !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5) !important;
-    }}
-    
-    [data-testid="stForm"] .stRadio p {{
-        color: white !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5) !important;
-    }}
-    
-    /* Form Card Styling - Soft and Inviting */
-    .form-card {{
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 250, 0.95));
-        border-radius: 20px;
-        padding: 30px;
-        margin: 25px 0;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-        border: 1px solid rgba(255,255,255,0.8);
-    }}
-    
-    .form-card-title {{
-        color: #2d3748 !important;
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }}
-    
-    /* Match Activity Cards */
-    .match-card {{
-        border-radius: 16px;
-        padding: 20px 24px;
-        margin-bottom: 14px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }}
-    
-    .match-card:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    }}
-    
-    .match-card-won {{
-        background: linear-gradient(135deg, rgba(40, 167, 69, 0.6) 0%, rgba(40, 167, 69, 0.35) 100%);
-        border: 2px solid rgba(40, 167, 69, 0.7);
-    }}
-    
-    .match-card-lost {{
-        background: linear-gradient(135deg, rgba(220, 53, 69, 0.6) 0%, rgba(220, 53, 69, 0.35) 100%);
-        border: 2px solid rgba(220, 53, 69, 0.7);
-    }}
-    
-    .match-card-pending {{
-        background: linear-gradient(135deg, rgba(255, 193, 7, 0.6) 0%, rgba(255, 193, 7, 0.35) 100%);
-        border: 2px solid rgba(255, 193, 7, 0.7);
-    }}
-    
-    .match-card .match-info {{
-        flex: 1;
-    }}
-    
-    .match-card .match-name {{
-        font-size: 1.15rem;
-        font-weight: 600;
-        color: white !important;
-        margin-bottom: 6px;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
-    }}
-    
-    .match-card .match-details {{
-        font-size: 0.85rem;
-        color: rgba(255,255,255,0.95) !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }}
-    
-    .match-card .match-profit {{
-        font-size: 1.4rem;
-        font-weight: 700;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-    }}
-    
-    .match-profit-positive {{
-        color: #90EE90 !important;
-    }}
-    
-    .match-profit-negative {{
-        color: #FFB6C1 !important;
-    }}
-    
-    .match-profit-neutral {{
-        color: #FFE066 !important;
-    }}
-    
-    /* Competition Banner */
-    .comp-banner-box {{
-        border-radius: 20px;
-        padding: 30px 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 30px;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-        border: 3px solid rgba(255,255,255,0.3);
-        backdrop-filter: blur(10px);
-    }}
-    
-    .comp-banner-box img {{
-        height: 100px;
-        margin-right: 30px;
-        filter: drop-shadow(3px 3px 8px rgba(0,0,0,0.5));
-    }}
-    
-    .comp-banner-box h1 {{
-        margin: 0;
+    .hero-title {
+        font-family: 'Orbitron', monospace;
+        font-size: 2.5rem;
         font-weight: 900;
-        font-size: 2.2rem;
-        letter-spacing: 2px;
-    }}
-    
-    /* Banner text - hidden on mobile for competitions only */
-    .comp-banner-text {{
-        margin: 0;
-        font-weight: 900;
-        font-size: 2.2rem;
-        letter-spacing: 2px;
-    }}
-    
-    /* Overview banner text - always visible */
-    .overview-banner-text {{
-        margin: 0;
-        font-weight: 900;
-        font-size: 2.2rem;
-        letter-spacing: 2px;
-        color: white;
-    }}
-    
-    /* Mobile Responsive - Competition Banner */
-    @media (max-width: 768px) {{
-        .comp-banner-box {{
-            padding: 20px;
-        }}
-        
-        .comp-banner-box img {{
-            height: 80px;
-            margin-right: 0;
-        }}
-        
-        /* Hide ONLY competition banner text, not overview */
-        .comp-banner-box .comp-banner-text {{
-            display: none !important;
-        }}
-        
-        /* Keep overview banner text visible */
-        .comp-banner-box .overview-banner-text {{
-            display: block !important;
-            font-size: 1.8rem;
-        }}
-        
-        .overview-comp-header h3 {{
-            font-size: 1.1rem;
-        }}
-        
-        .overview-comp-header img {{
-            height: 50px;
-            margin-right: 12px;
-        }}
-        
-        .overview-comp-profit {{
-            font-size: 1.4rem;
-        }}
-        
-        .overview-stats-row {{
-            flex-wrap: wrap;
-        }}
-        
-        .overview-stat-item {{
-            flex: 1 1 33%;
-            padding: 8px 5px;
-        }}
-        
-        .stat-box {{
-            min-width: 100px;
-            padding: 15px 10px;
-        }}
-        
-        .stat-box .stat-value {{
-            font-size: 1.2rem;
-        }}
-        
-        .match-card {{
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-        }}
-        
-        .match-card .match-profit {{
-            align-self: flex-end;
-        }}
-    }}
-    
-    /* Stats Boxes */
-    .stats-container {{
-        display: flex;
-        gap: 15px;
-        margin: 25px 0;
-        flex-wrap: wrap;
-    }}
-    
-    .stat-box {{
-        flex: 1;
-        min-width: 150px;
-        border-radius: 15px;
-        padding: 20px;
         text-align: center;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        backdrop-filter: blur(10px);
-    }}
-    
-    .stat-box-total {{
-        background: linear-gradient(135deg, rgba(52, 152, 219, 0.8) 0%, rgba(41, 128, 185, 0.6) 100%);
-        border: 2px solid rgba(52, 152, 219, 0.5);
-    }}
-    
-    .stat-box-income {{
-        background: linear-gradient(135deg, rgba(46, 204, 113, 0.8) 0%, rgba(39, 174, 96, 0.6) 100%);
-        border: 2px solid rgba(46, 204, 113, 0.5);
-    }}
-    
-    .stat-box-profit {{
-        background: linear-gradient(135deg, rgba(155, 89, 182, 0.8) 0%, rgba(142, 68, 173, 0.6) 100%);
-        border: 2px solid rgba(155, 89, 182, 0.5);
-    }}
-    
-    .stat-box .stat-label {{
-        font-size: 0.85rem;
-        color: rgba(255,255,255,0.9) !important;
+        background: linear-gradient(135deg, #FF6B35, #FF8C42, #FFFFFF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }}
+        letter-spacing: 3px;
+        margin-bottom: 0.5rem;
+    }
     
-    .stat-box .stat-value {{
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: white !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-    }}
-    
-    /* Overview Competition Cards - Banner Style */
-    .overview-comp-card {{
-        border-radius: 20px;
-        padding: 25px 30px;
-        margin-bottom: 20px;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-        border: 3px solid rgba(255,255,255,0.3);
-        backdrop-filter: blur(10px);
-    }}
-    
-    .overview-comp-header {{
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 20px;
-        border-bottom: 2px solid rgba(255,255,255,0.2);
-    }}
-    
-    .overview-comp-header img {{
-        height: 85px;
-        margin-right: 25px;
-        filter: drop-shadow(3px 3px 8px rgba(0,0,0,0.5));
-    }}
-    
-    .overview-comp-header h3 {{
-        margin: 0;
-        font-weight: 800;
-        font-size: 1.6rem;
-        letter-spacing: 1px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }}
-    
-    .overview-comp-profit {{
-        font-size: 2rem;
-        font-weight: 700;
-        text-align: right;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }}
-    
-    .overview-profit-positive {{
-        color: #90EE90 !important;
-    }}
-    
-    .overview-profit-negative {{
-        color: #FFB6C1 !important;
-    }}
-    
-    .overview-stats-row {{
-        display: flex;
-        justify-content: space-around;
+    .hero-subtitle {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.1rem;
         text-align: center;
-    }}
+        color: #B0B0B0;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+        margin-bottom: 2rem;
+    }
     
-    .overview-stat-item {{
-        padding: 10px 20px;
-    }}
-    
-    .overview-stat-label {{
-        font-size: 0.85rem;
-        color: rgba(255,255,255,0.8) !important;
-        margin-bottom: 5px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }}
-    
-    .overview-stat-value {{
-        font-size: 1.3rem;
-        font-weight: 600;
-        color: white !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-    }}
-    
-    .overview-stat-value-green {{
-        color: #90EE90 !important;
-    }}
-    
-    /* Next Bet Display */
-    .next-bet-display {{
-        text-align: center;
-        margin: 25px 0;
-        padding: 20px;
-        background: linear-gradient(135deg, rgba(76, 175, 80, 0.3) 0%, rgba(76, 175, 80, 0.1) 100%);
+    .scoreboard {
+        background: linear-gradient(135deg, rgba(20,20,20,0.9), rgba(30,30,30,0.85));
+        border: 2px solid rgba(255, 107, 53, 0.5);
         border-radius: 15px;
-        border: 2px solid rgba(76, 175, 80, 0.4);
-    }}
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0 30px rgba(255, 107, 53, 0.2);
+        backdrop-filter: blur(10px);
+    }
     
-    .next-bet-label {{
-        font-size: 1rem;
-        color: rgba(255,255,255,0.85) !important;
-        margin-bottom: 5px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }}
+    [data-testid="stChatMessage"] {
+        background: linear-gradient(135deg, rgba(25,25,25,0.85), rgba(35,35,35,0.8));
+        border: 1px solid rgba(255, 107, 53, 0.2);
+        border-radius: 15px;
+        padding: 1rem;
+        margin: 0.8rem 0;
+        backdrop-filter: blur(5px);
+    }
     
-    .next-bet-value {{
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #4CAF50 !important;
-        text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
-    }}
+    [data-testid="stChatMessage"] p,
+    [data-testid="stChatMessage"] li,
+    [data-testid="stChatMessage"] span,
+    [data-testid="stChatMessage"] div {
+        color: #FFFFFF !important;
+    }
     
-    /* Section Titles */
-    .section-title {{
-        color: white !important;
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin: 25px 0 15px 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }}
+    [data-testid="stChatMessage"] strong {
+        color: #FF6B35 !important;
+    }
     
-    /* Balance Display */
-    .balance-container {{
-        text-align: center;
-        margin: 25px 0;
-        padding: 20px;
-    }}
+    [data-testid="stChatInput"] {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
     
-    .balance-label {{
-        color: rgba(255,255,255,0.8) !important;
-        font-size: 1rem;
-        margin-bottom: 5px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }}
+    [data-testid="stChatInput"] textarea {
+        color: #FFFFFF !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-size: 1rem !important;
+        background: rgba(25, 25, 25, 0.95) !important;
+        border: 2px solid rgba(255, 107, 53, 0.5) !important;
+        border-radius: 25px !important;
+        padding: 0.8rem 1rem !important;
+    }
     
-    .balance-value {{
-        font-size: 3rem;
-        font-weight: 700;
-        text-shadow: 0 0 30px rgba(0,0,0,0.3);
-    }}
+    [data-testid="stChatInput"] textarea:focus {
+        border-color: #FF6B35 !important;
+        box-shadow: 0 0 15px rgba(255, 107, 53, 0.4) !important;
+    }
     
-    /* Info messages */
-    .info-message {{
-        background: rgba(255,255,255,0.15);
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        color: white !important;
-        border: 1px solid rgba(255,255,255,0.2);
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }}
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
     
-    /* Football Loading Animation */
-    .loading-container {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 300px;
-        gap: 20px;
-    }}
+    [data-testid="stChatInput"] button {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        border-radius: 50% !important;
+        color: #000 !important;
+    }
     
-    .football-loader {{
-        width: 80px;
-        height: 80px;
-        background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-        border-radius: 50%;
-        position: relative;
-        animation: roll 1s linear infinite;
-        box-shadow: 
-            inset -5px -5px 15px rgba(0,0,0,0.2),
-            inset 5px 5px 15px rgba(255,255,255,0.3),
-            0 10px 30px rgba(0,0,0,0.4);
-    }}
+    [data-testid="stChatInput"] button:hover {
+        box-shadow: 0 0 20px rgba(255, 107, 53, 0.6) !important;
+    }
     
-    .football-loader::before {{
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 25px;
-        height: 25px;
-        background: #1a1a1a;
-        clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-    }}
+    [data-testid="stBottom"] {
+        background: rgba(13, 13, 13, 0.98) !important;
+        border-top: 1px solid rgba(255, 107, 53, 0.3) !important;
+    }
     
-    @keyframes roll {{
-        0% {{ transform: rotate(0deg) translateX(0); }}
-        25% {{ transform: rotate(90deg) translateX(10px); }}
-        50% {{ transform: rotate(180deg) translateX(0); }}
-        75% {{ transform: rotate(270deg) translateX(-10px); }}
-        100% {{ transform: rotate(360deg) translateX(0); }}
-    }}
+    [data-testid="stBottom"] > div {
+        background: transparent !important;
+    }
     
-    .loading-text {{
-        color: white;
-        font-size: 1.2rem;
-        font-weight: 500;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        animation: pulse 1.5s ease-in-out infinite;
-    }}
+    [data-testid="stBottom"] * {
+        background-color: transparent !important;
+    }
     
-    @keyframes pulse {{
-        0%, 100% {{ opacity: 0.6; }}
-        50% {{ opacity: 1; }}
-    }}
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
     
-    /* Override Streamlit's default spinner with football */
-    [data-testid="stSpinner"] {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }}
+    /* File uploader styling - dark text on light background */
+    [data-testid="stFileUploader"] {
+        background: rgba(30, 30, 30, 0.95) !important;
+        border: 2px solid rgba(255, 107, 53, 0.5) !important;
+        border-radius: 15px !important;
+        padding: 1rem !important;
+    }
     
-    [data-testid="stSpinner"] > div {{
-        display: none !important;
-    }}
+    [data-testid="stFileUploader"] label {
+        color: #FFFFFF !important;
+    }
     
-    [data-testid="stSpinner"]::after {{
-        content: '';
-        width: 50px;
-        height: 50px;
-        background: 
-            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, transparent 50%),
-            linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
-        border-radius: 50%;
-        animation: football-spin 0.8s linear infinite;
-        box-shadow: 
-            inset -3px -3px 10px rgba(0,0,0,0.15),
-            inset 3px 3px 10px rgba(255,255,255,0.5),
-            0 5px 20px rgba(0,0,0,0.3);
-    }}
+    [data-testid="stFileUploader"] section {
+        background: rgba(50, 50, 50, 0.9) !important;
+        border: 2px dashed rgba(255, 107, 53, 0.5) !important;
+        border-radius: 10px !important;
+    }
     
-    @keyframes football-spin {{
-        0% {{ transform: rotate(0deg) translateY(0px); }}
-        25% {{ transform: rotate(90deg) translateY(-5px); }}
-        50% {{ transform: rotate(180deg) translateY(0px); }}
-        75% {{ transform: rotate(270deg) translateY(-5px); }}
-        100% {{ transform: rotate(360deg) translateY(0px); }}
-    }}
+    [data-testid="stFileUploader"] section > div {
+        color: #FFFFFF !important;
+    }
     
-    /* Overview cards - hide text on mobile */
-    .overview-comp-name {{
-        margin: 0;
-        font-weight: 800;
-        font-size: 1.6rem;
-        letter-spacing: 1px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        color: white !important;
-    }}
+    [data-testid="stFileUploader"] small {
+        color: #FF6B35 !important;
+    }
     
-    @media (max-width: 768px) {{
-        .overview-comp-name {{
-            display: none !important;
-        }}
-        
-        .overview-comp-header {{
-            justify-content: space-between;
-        }}
-        
-        .overview-comp-header img {{
-            margin-right: 0;
-        }}
-    }}
-    
-    /* Expander styling for dark background */
-    [data-testid="stExpander"] {{
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 12px !important;
-        margin-bottom: 10px !important;
-    }}
-    
-    [data-testid="stExpander"] summary {{
-        color: white !important;
+    [data-testid="stFileUploader"] button {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        color: #000000 !important;
         font-weight: 600 !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
-    }}
+    }
     
-    [data-testid="stExpander"] summary:hover {{
-        color: #4CABFF !important;
-    }}
+    /* Selectbox styling */
+    [data-testid="stSelectbox"] label {
+        color: #FFFFFF !important;
+    }
     
-    [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {{
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
-    }}
+    [data-testid="stSelectbox"] > div > div {
+        background: rgba(40, 40, 40, 0.95) !important;
+        border: 1px solid rgba(255, 107, 53, 0.5) !important;
+        color: #FFFFFF !important;
+    }
     
-    [data-testid="stExpander"] label {{
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
-    }}
+    .stButton > button {
+        font-family: 'Orbitron', monospace;
+        font-weight: 600;
+        background: rgba(255, 107, 53, 0.2);
+        color: #FF6B35;
+        border: 2px solid #FF6B35;
+        border-radius: 25px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: all 0.3s ease;
+    }
     
-    /* Archive card styling */
-    .archive-card {{
-        background: linear-gradient(135deg, rgba(108, 117, 125, 0.6) 0%, rgba(73, 80, 87, 0.4) 100%);
-        border: 2px solid rgba(108, 117, 125, 0.5);
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 15px;
-    }}
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42);
+        color: #000;
+        box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+    }
     
-    .archive-card h4 {{
-        color: white !important;
-        margin: 0 0 10px 0;
-    }}
+    .welcome-banner {
+        background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,140,66,0.15), rgba(0,212,255,0.1));
+        border: 2px solid rgba(255, 107, 53, 0.4);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
+    }
     
-    .archive-card p {{
-        color: rgba(255,255,255,0.8) !important;
-        margin: 5px 0;
-    }}
+    .welcome-title {
+        font-family: 'Orbitron', monospace;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin-bottom: 0.5rem;
+    }
     
-    /* Settings card */
-    .settings-card {{
-        background: rgba(255,255,255,0.95);
-        border-radius: 16px;
-        padding: 25px;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-    }}
+    .welcome-text {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.1rem;
+        color: #B0B0B0;
+    }
     
-    .settings-card h3 {{
-        color: #333 !important;
-        margin-bottom: 20px;
-    }}
+    .sidebar-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,107,53,0.5), transparent);
+        margin: 1.5rem 0;
+    }
     
-    .settings-card label {{
-        color: #555 !important;
-    }}
-    </style>
-""", unsafe_allow_html=True)
-
-
-# --- 3. GOOGLE SHEETS CONNECTION ---
-@st.cache_data(ttl=15)
-def connect_to_sheets():
-    """Connect to Google Sheets and retrieve all data."""
-    if "service_account" not in st.secrets:
-        return None, None, None, DEFAULT_BANKROLL, [], "Missing [service_account] in Secrets"
-    if "sheet_id" not in st.secrets:
-        return None, None, None, DEFAULT_BANKROLL, [], "Missing 'sheet_id' in Secrets"
+    .response-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 107, 53, 0.2);
+        border: 1px solid rgba(255, 107, 53, 0.5);
+        border-radius: 20px;
+        padding: 0.4rem 1rem;
+        margin-bottom: 1rem;
+        font-family: 'Orbitron', monospace;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #FF6B35;
+    }
     
-    try:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = Credentials.from_service_account_info(
-            st.secrets["service_account"],
-            scopes=scopes
-        )
-        gc = gspread.authorize(creds)
-    except Exception as e:
-        return None, None, None, DEFAULT_BANKROLL, [], f"Authentication Error: {str(e)}"
+    .login-container {
+        background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(30,30,30,0.9));
+        border: 2px solid rgba(255, 107, 53, 0.5);
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 500px;
+        margin: 2rem auto;
+        backdrop-filter: blur(10px);
+    }
     
-    try:
-        sh = gc.open_by_key(st.secrets["sheet_id"])
-    except Exception as e:
-        bot_email = st.secrets["service_account"].get("client_email", "Unknown")
-        return None, None, None, DEFAULT_BANKROLL, [], f"Access Denied. Share with: '{bot_email}'. Error: {e}"
+    .profile-card {
+        background: rgba(255, 107, 53, 0.1);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+    }
     
-    # Get Matches worksheet (first sheet)
-    try:
-        matches_ws = sh.get_worksheet(MATCHES_SHEET)
-    except Exception as e:
-        return None, None, None, DEFAULT_BANKROLL, [], f"Error accessing matches sheet: {str(e)}"
+    .history-item {
+        background: rgba(30, 30, 30, 0.8);
+        border: 1px solid rgba(255, 107, 53, 0.2);
+        border-radius: 10px;
+        padding: 0.8rem;
+        margin: 0.5rem 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
     
-    # Get Competitions worksheet
-    try:
-        comp_ws = sh.worksheet(COMPETITIONS_SHEET)
-    except Exception as e:
-        return None, None, None, DEFAULT_BANKROLL, [], f"Error accessing Competitions sheet. Make sure it exists! Error: {str(e)}"
+    .history-item:hover {
+        border-color: #FF6B35;
+        background: rgba(255, 107, 53, 0.1);
+    }
     
-    # Read matches data
-    try:
-        raw_values = matches_ws.get_all_values()
-        if len(raw_values) > 1:
-            headers = [h.strip() for h in raw_values[0]]
-            matches_data = [dict(zip(headers, row)) for row in raw_values[1:] if any(cell.strip() for cell in row)]
-        else:
-            matches_data = []
-    except Exception as e:
-        matches_data = []
+    /* Form styling */
+    .stTextInput input, .stSelectbox select {
+        background: rgba(30, 30, 30, 0.9) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
+        color: #FFFFFF !important;
+    }
     
-    # Read competitions data
-    try:
-        comp_values = comp_ws.get_all_values()
-        if len(comp_values) > 1:
-            comp_headers = [h.strip() for h in comp_values[0]]
-            competitions_data = [dict(zip(comp_headers, row)) for row in comp_values[1:] if any(cell.strip() for cell in row)]
-        else:
-            competitions_data = []
-    except Exception as e:
-        competitions_data = []
+    .stTextInput input:focus, .stSelectbox select:focus {
+        border-color: #FF6B35 !important;
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.3) !important;
+    }
     
-    # Read bankroll
-    try:
-        val = matches_ws.cell(BANKROLL_CELL_ROW, BANKROLL_CELL_COL).value
-        bankroll = float(str(val).replace(',', '').replace('₪', '').strip()) if val else DEFAULT_BANKROLL
-    except:
-        bankroll = DEFAULT_BANKROLL
+    ::-webkit-scrollbar {width: 8px;}
+    ::-webkit-scrollbar-track {background: #0D0D0D;}
+    ::-webkit-scrollbar-thumb {background: linear-gradient(#FF6B35, #FF8C42); border-radius: 4px;}
     
-    return matches_data, matches_ws, comp_ws, bankroll, competitions_data, None
-
-
-def get_spreadsheet():
-    """Get fresh spreadsheet connection for updates."""
-    if "service_account" not in st.secrets or "sheet_id" not in st.secrets:
-        return None
-    try:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = Credentials.from_service_account_info(
-            st.secrets["service_account"],
-            scopes=scopes
-        )
-        gc = gspread.authorize(creds)
-        return gc.open_by_key(st.secrets["sheet_id"])
-    except Exception as e:
-        st.error(f"Connection error: {str(e)}")
-        return None
-
-
-def get_matches_worksheet():
-    """Get matches worksheet for updates."""
-    sh = get_spreadsheet()
-    if sh:
-        return sh.get_worksheet(MATCHES_SHEET)
-    return None
-
-
-def get_competitions_worksheet():
-    """Get competitions worksheet for updates."""
-    sh = get_spreadsheet()
-    if sh:
-        try:
-            return sh.worksheet(COMPETITIONS_SHEET)
-        except:
-            return None
-    return None
-
-
-# --- 4. DATA PROCESSING ---
-def build_competitions_dict(competitions_data):
-    """Build a dictionary of competitions with their settings."""
-    comps = {}
-    for comp in competitions_data:
-        name = comp.get('Name', '').strip()
-        if not name:
-            continue
-        
-        # Parse colors
-        color1 = comp.get('Color1', '#4CABFF').strip() or '#4CABFF'
-        color2 = comp.get('Color2', '#E6F7FF').strip() or '#E6F7FF'
-        text_color = comp.get('Text_Color', '#004085').strip() or '#004085'
-        
-        # Build gradient
-        gradient = f"linear-gradient(135deg, {color1} 0%, {color2} 100%)"
-        
-        # Parse default stake
-        try:
-            default_stake = float(str(comp.get('Default_Stake', DEFAULT_STAKE)).replace(',', '.'))
-        except:
-            default_stake = DEFAULT_STAKE
-        
-        comps[name] = {
-            'name': name,
-            'description': comp.get('Description', ''),
-            'default_stake': default_stake,
-            'color1': color1,
-            'color2': color2,
-            'text_color': text_color,
-            'gradient': gradient,
-            'logo': comp.get('Logo_URL', ''),
-            'status': comp.get('Status', 'Active').strip(),
-            'created_date': comp.get('Created_Date', ''),
-            'closed_date': comp.get('Closed_Date', ''),
-            'row': competitions_data.index(comp) + 2  # +2 for header and 0-index
+    /* Force sidebar to always be visible on desktop */
+    @media (min-width: 768px) {
+        section[data-testid="stSidebar"] {
+            display: flex !important;
+            width: 300px !important;
+            min-width: 300px !important;
+            transform: none !important;
+            position: relative !important;
         }
+        
+        /* Hide the collapse button on desktop */
+        button[data-testid="stSidebarCollapseButton"],
+        [data-testid="collapsedControl"],
+        button[kind="headerNoPadding"] {
+            display: none !important;
+        }
+        
+        /* Ensure main content adjusts */
+        .main .block-container {
+            max-width: 100% !important;
+        }
+        
+        /* Hide mobile buttons on desktop */
+        .mobile-only-buttons {
+            display: none !important;
+        }
+    }
     
-    return comps
+    /* Mobile styles */
+    @media (max-width: 767px) {
+        .mobile-only-buttons {
+            display: flex !important;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+        }
+        
+        .mobile-only-buttons button {
+            flex: 1;
+            padding: 0.5rem !important;
+            font-size: 0.85rem !important;
+        }
+    }
+</style>
+""".replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
+# ============================================================================
+# DATABASE FUNCTIONS
+# ============================================================================
+@st.cache_resource
+def get_supabase_client():
+    """Initialize Supabase client"""
+    try:
+        url = st.secrets.get("SUPABASE_URL")
+        key = st.secrets.get("SUPABASE_KEY")
+        if not url or not key:
+            return None
+        return create_client(url, key)
+    except Exception as e:
+        st.error(f"Failed to connect to Supabase: {e}")
+        return None
 
-def process_data(raw, competitions_dict):
-    """Process raw match data and calculate betting cycles."""
-    if not raw:
-        empty_stats = {name: {"total_staked": 0, "total_income": 0, "net_profit": 0} for name in competitions_dict.keys()}
-        return pd.DataFrame(), {name: competitions_dict[name]['default_stake'] for name in competitions_dict.keys()}, empty_stats, 0.0
+def get_coach_by_email(supabase, email):
+    """Get coach profile by email"""
+    try:
+        result = supabase.table("coaches").select("*").eq("email", email).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception:
+        return None
+
+def create_coach(supabase, name, email, team_name, age_group, level):
+    """Create new coach profile"""
+    try:
+        result = supabase.table("coaches").insert({
+            "name": name,
+            "email": email,
+            "team_name": team_name,
+            "age_group": age_group,
+            "level": level
+        }).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        st.error(f"Error creating profile: {e}")
+        return None
+
+def get_coach_conversations(supabase, coach_id):
+    """Get all conversations for a coach"""
+    try:
+        result = supabase.table("conversations").select("*").eq("coach_id", coach_id).order("created_at", desc=True).execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def create_conversation(supabase, coach_id, title):
+    """Create new conversation"""
+    try:
+        result = supabase.table("conversations").insert({
+            "coach_id": coach_id,
+            "title": title
+        }).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def save_message(supabase, conversation_id, role, content, agent=None):
+    """Save message to database"""
+    try:
+        supabase.table("messages").insert({
+            "conversation_id": conversation_id,
+            "role": role,
+            "content": content,
+            "agent": agent
+        }).execute()
+    except Exception:
+        pass
+
+def get_conversation_messages(supabase, conversation_id):
+    """Get all messages for a conversation"""
+    try:
+        result = supabase.table("messages").select("*").eq("conversation_id", conversation_id).order("created_at").execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def update_conversation_title(supabase, conversation_id, title):
+    """Update conversation title"""
+    try:
+        supabase.table("conversations").update({"title": title}).eq("id", conversation_id).execute()
+    except Exception:
+        pass
+
+def get_agent_documents(supabase, agent_name):
+    """Get all documents for a specific agent (simple retrieval without embeddings)"""
+    try:
+        result = supabase.table("documents").select("title, content").eq("agent", agent_name).execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def get_agent_knowledge(supabase, agent):
+    """Build knowledge context from agent's documents"""
+    agent_name = agent.value  # e.g., "youth_coach"
+    documents = get_agent_documents(supabase, agent_name)
     
-    processed = []
-    cycle_investment = {name: 0.0 for name in competitions_dict.keys()}
-    next_bets = {name: competitions_dict[name]['default_stake'] for name in competitions_dict.keys()}
-    comp_stats = {name: {"total_staked": 0.0, "total_income": 0.0, "net_profit": 0.0} for name in competitions_dict.keys()}
+    if not documents:
+        return ""
     
-    for i, row in enumerate(raw):
-        if not isinstance(row, dict):
-            continue
+    knowledge = "\n\nKNOWLEDGE BASE - Use this information to answer questions:\n"
+    knowledge += "=" * 50 + "\n"
+    
+    for doc in documents:
+        knowledge += f"\n### {doc.get('title', 'Document')}\n"
+        knowledge += f"{doc.get('content', '')}\n"
+        knowledge += "-" * 30 + "\n"
+    
+    knowledge += "\nIMPORTANT: Use the knowledge base above when relevant. If the question is about something in your knowledge base, prioritize that information."
+    
+    return knowledge
+
+# ============================================================================
+# OPENAI FUNCTIONS
+# ============================================================================
+@st.cache_resource
+def get_openai_client():
+    """Initialize OpenAI client"""
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY")
+        if not api_key:
+            return None
+        return OpenAI(api_key=api_key)
+    except Exception as e:
+        st.error(f"Failed to initialize OpenAI: {e}")
+        return None
+
+def route_question(question, client, chat_history=None):
+    """Route question to appropriate agent with smart context awareness"""
+    try:
+        # Check if we have previous context
+        previous_agent = None
+        previous_message = None
         
-        comp = str(row.get('Competition', '')).strip()
-        if comp not in competitions_dict:
-            continue  # Skip unknown competitions
+        if chat_history and len(chat_history) >= 1:
+            # Find the last assistant message
+            for msg in reversed(chat_history):
+                if msg.get("role") == "assistant" and msg.get("agent"):
+                    previous_agent = msg.get("agent")
+                    previous_message = msg.get("raw_content", msg.get("content", ""))[:300]
+                    break
         
-        comp_info = competitions_dict[comp]
-        home = str(row.get('Home Team', '')).strip()
-        away = str(row.get('Away Team', '')).strip()
-        match_name = f"{home} vs {away}" if home and away else "Unknown Match"
+        # SMART CHECK: If previous agent asked a question and user gives short/data response, STAY
+        if previous_agent and previous_message:
+            # Check if previous message contains a question
+            has_question = "?" in previous_message or any(word in previous_message.lower() for word in 
+                ["please provide", "tell me", "what is", "how much", "how many", "ספר לי", "מה", "כמה", "איזה", "אנא"])
+            
+            # Check if user response looks like data/continuation (short, has numbers, answering format)
+            is_data_response = (
+                len(question) < 200 or  # Short response
+                any(char.isdigit() for char in question) or  # Contains numbers
+                question.strip().startswith(("גיל", "משקל", "גובה", "age", "weight", "height", "כן", "לא", "yes", "no"))
+            )
+            
+            # If agent asked question and user seems to be answering → STAY with same agent
+            if has_question and is_data_response:
+                # Return previous agent directly without asking Router
+                for agent in Agent:
+                    if agent.value == previous_agent:
+                        return agent
         
-        try:
-            odds = float(str(row.get('Odds', '1')).replace(',', '.').strip())
-            if odds <= 0:
-                odds = 1.0
-        except:
-            odds = 1.0
-        
-        try:
-            stake_str = str(row.get('Stake', '')).replace(',', '.').replace('₪', '').strip()
-            stake = float(stake_str) if stake_str else 0.0
-        except:
-            stake = 0.0
-        
-        if stake == 0:
-            stake = next_bets.get(comp, comp_info['default_stake'])
-        
-        result = str(row.get('Result', '')).strip()
-        date = str(row.get('Date', '')).strip()
-        
-        if result == "Pending" or result == "" or not result:
-            processed.append({
-                "Row": i + 2,
-                "Comp": comp,
-                "Match": match_name,
-                "Date": date,
-                "Profit": 0,
-                "Status": "Pending",
-                "Stake": stake,
-                "Odds": odds,
-                "Income": 0,
-                "Expense": stake
-            })
-            continue
-        
-        cycle_investment[comp] += stake
-        comp_stats[comp]["total_staked"] += stake
-        
-        result_lower = result.lower().strip()
-        is_win = (result == "Draw (X)" or result_lower == "draw" or result_lower == "draw (x)")
-        if "no draw" in result_lower or "no_draw" in result_lower:
-            is_win = False
-        
-        if is_win:
-            income = stake * odds
-            net_profit = income - cycle_investment[comp]
-            comp_stats[comp]["total_income"] += income
-            comp_stats[comp]["net_profit"] += net_profit
-            cycle_investment[comp] = 0.0
-            next_bets[comp] = comp_info['default_stake']
-            status = "Won"
+        # Use Router for new topics or when no clear continuation
+        if previous_agent and previous_message:
+            prompt = ROUTER_PROMPT.format(
+                previous_agent=previous_agent.upper().replace("_", " "),
+                previous_message=previous_message[:200],
+                question=question
+            )
         else:
-            income = 0.0
-            net_profit = 0
-            next_bets[comp] = stake * 2.0
-            status = "Lost"
+            prompt = ROUTER_PROMPT_NO_CONTEXT.format(question=question)
         
-        processed.append({
-            "Row": i + 2,
-            "Comp": comp,
-            "Match": match_name,
-            "Date": date,
-            "Profit": net_profit,
-            "Status": status,
-            "Stake": stake,
-            "Odds": odds,
-            "Income": income,
-            "Expense": stake
-        })
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=20,
+            temperature=0
+        )
+        result = response.choices[0].message.content.strip().upper()
+        
+        if "TACTICIAN" in result:
+            return Agent.TACTICIAN
+        elif "SKILLS" in result:
+            return Agent.SKILLS_COACH
+        elif "NUTRITION" in result:
+            return Agent.NUTRITIONIST
+        elif "STRENGTH" in result:
+            return Agent.STRENGTH_COACH
+        elif "ANALYST" in result:
+            return Agent.ANALYST
+        elif "YOUTH" in result:
+            return Agent.YOUTH_COACH
+        return Agent.ASSISTANT_COACH
+    except Exception:
+        return Agent.ASSISTANT_COACH
+
+def get_agent_response(question, agent, chat_history, client, coach_profile=None, supabase=None, image_data=None):
+    """Get response from specific agent with RAG knowledge and optional image"""
+    try:
+        system_prompt = get_system_prompt(agent, coach_profile)
+        
+        # Add RAG knowledge if available
+        if supabase:
+            knowledge = get_agent_knowledge(supabase, agent)
+            if knowledge:
+                system_prompt += knowledge
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add recent history
+        if chat_history:
+            for msg in chat_history[-4:]:
+                role = "user" if msg["role"] == "user" else "assistant"
+                content = msg.get("raw_content", msg["content"])
+                messages.append({"role": role, "content": content})
+        
+        # Handle image if provided
+        if image_data:
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": question},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{image_data['mime_type']};base64,{image_data['data']}"
+                        }
+                    }
+                ]
+            })
+            # Use GPT-4o for vision (not mini)
+            model = "gpt-4o"
+        else:
+            messages.append({"role": "user", "content": question})
+            model = "gpt-4o-mini"
+        
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            max_tokens=1500,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def format_response(response, agent):
+    """Format response with agent badge"""
+    info = AGENT_INFO[agent]
+    badge = f'<div class="response-badge"><span>{info["icon"]}</span><span>{info["name"]}</span></div>'
+    return badge + "\n\n" + response
+
+def get_agent_from_value(value):
+    """Convert string value to Agent enum"""
+    if isinstance(value, Agent):
+        return value
+    for agent in Agent:
+        if agent.value == value:
+            return agent
+    return Agent.ASSISTANT_COACH
+
+# ============================================================================
+# UI COMPONENTS
+# ============================================================================
+def render_login_page(supabase):
+    """Render login/registration page"""
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
     
-    pending_losses = sum(cycle_investment.values())
-    return pd.DataFrame(processed), next_bets, comp_stats, pending_losses
-
-
-def show_loading(message="Loading data..."):
-    """Display football loading animation."""
-    st.markdown(f"""
-        <div class="loading-container">
-            <div class="football-loader"></div>
-            <div class="loading-text">{message}</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-
-# --- 5. LOAD DATA ---
-with st.spinner(''):
-    raw_data, matches_ws, comp_ws, initial_bankroll, competitions_raw, error_msg = connect_to_sheets()
-
-# Build competitions dictionary
-if competitions_raw:
-    competitions = build_competitions_dict(competitions_raw)
-else:
-    competitions = {}
-
-# Get active and archived competitions
-active_competitions = {k: v for k, v in competitions.items() if v['status'] == 'Active'}
-archived_competitions = {k: v for k, v in competitions.items() if v['status'] == 'Closed'}
-
-# Process match data
-df, next_stakes, competition_stats, pending_losses = process_data(raw_data, competitions) if not error_msg else (pd.DataFrame(), {}, {}, 0)
-current_bal = initial_bankroll + (df['Profit'].sum() if not df.empty else 0) - pending_losses
-
-
-# --- 6. SIDEBAR ---
-with st.sidebar:
-    st.image(APP_LOGO_URL, use_container_width=True)
+    st.markdown('''
+    <div class="scoreboard">
+        <div class="hero-title">HOOPS AI</div>
+        <div class="hero-subtitle">Your Personal Assistant Coach</div>
+    </div>
+    ''', unsafe_allow_html=True)
     
-    if error_msg:
-        st.error(⚠️ Offline Mode")
-        if "service_account" in st.secrets:
-            bot_email = st.secrets["service_account"].get("client_email", "Unknown")
-            st.info(f"🤖 Bot Email:\n`{bot_email}`")
-    else:
-        st.success("✅ Connected")
+    st.markdown('''
+    <div class="welcome-banner">
+        <div class="welcome-title">🏀 Welcome to HOOPS AI!</div>
+        <div class="welcome-text">Enter your details to get personalized coaching advice tailored to your team.</div>
+        <div class="welcome-text" style="margin-top:0.5rem; direction:rtl;">הכנס את הפרטים שלך לקבלת ייעוץ מותאם אישית 🇮🇱</div>
+    </div>
+    ''', unsafe_allow_html=True)
     
-    st.divider()
+    col1, col2, col3 = st.columns([1, 2, 1])
     
-    # Bankroll Management
-    st.markdown("### 💰 Bankroll")
-    st.metric("Current", f"₪{initial_bankroll:,.0f}")
-    
-    amt = st.number_input("Amount", min_value=10.0, value=100.0, step=50.0)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Deposit", use_container_width=True):
-            ws = get_matches_worksheet()
-            if ws:
-                ws.update_cell(BANKROLL_CELL_ROW, BANKROLL_CELL_COL, initial_bankroll + amt)
-                connect_to_sheets.clear()
-                st.rerun()
     with col2:
-        if st.button("➖ Withdraw", use_container_width=True):
-            ws = get_matches_worksheet()
-            if ws:
-                ws.update_cell(BANKROLL_CELL_ROW, BANKROLL_CELL_COL, initial_bankroll - amt)
-                connect_to_sheets.clear()
+        tab1, tab2 = st.tabs(["🔑 Login", "📝 Register"])
+        
+        with tab1:
+            st.markdown("### Welcome Back, Coach!")
+            login_email = st.text_input("Email", key="login_email", placeholder="your@email.com")
+            
+            if st.button("🚀 LOGIN", use_container_width=True, key="login_btn"):
+                if login_email:
+                    coach = get_coach_by_email(supabase, login_email)
+                    if coach:
+                        st.session_state.coach = coach
+                        st.session_state.logged_in = True
+                        st.rerun()
+                    else:
+                        st.error("Coach not found. Please register first.")
+                else:
+                    st.warning("Please enter your email.")
+        
+        with tab2:
+            st.markdown("### Create Your Profile")
+            
+            reg_name = st.text_input("Coach Name", key="reg_name", placeholder="John Smith")
+            reg_email = st.text_input("Email", key="reg_email", placeholder="your@email.com")
+            reg_team = st.text_input("Team Name", key="reg_team", placeholder="Lakers Youth")
+            reg_age = st.selectbox("Age Group", AGE_GROUPS, key="reg_age")
+            reg_level = st.selectbox("Level", LEVELS, key="reg_level")
+            
+            if st.button("🏀 CREATE PROFILE", use_container_width=True, key="register_btn"):
+                if reg_name and reg_email:
+                    # Check if email exists
+                    existing = get_coach_by_email(supabase, reg_email)
+                    if existing:
+                        st.error("Email already registered. Please login.")
+                    else:
+                        coach = create_coach(supabase, reg_name, reg_email, reg_team, reg_age, reg_level)
+                        if coach:
+                            st.session_state.coach = coach
+                            st.session_state.logged_in = True
+                            st.success("Profile created! Redirecting...")
+                            st.rerun()
+                else:
+                    st.warning("Please fill in Name and Email.")
+
+def render_sidebar(supabase):
+    """Render sidebar with logo, profile, history"""
+    with st.sidebar:
+        # Logo
+        st.markdown(f'''
+        <div style="text-align:center; padding:1rem;">
+            <img src="{LOGO_URL}" style="width:180px;">
+        </div>
+        <div class="sidebar-divider"></div>
+        ''', unsafe_allow_html=True)
+        
+        # Coach Profile
+        coach = st.session_state.get('coach', {})
+        st.markdown(f'''
+        <div class="profile-card">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.8rem; margin-bottom:0.5rem;">👤 COACH PROFILE</div>
+            <div style="font-weight:600; font-size:1.1rem;">{coach.get('name', 'Unknown')}</div>
+            <div style="color:#888; font-size:0.85rem;">{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # New Chat Button
+        if st.button("➕ NEW CHAT", use_container_width=True):
+            st.session_state.current_conversation = None
+            st.session_state.messages = []
+            st.rerun()
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # Chat History
+        st.markdown('''
+        <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">
+            📜 CHAT HISTORY
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        conversations = get_coach_conversations(supabase, coach.get('id'))
+        
+        if conversations:
+            for conv in conversations[:10]:  # Show last 10
+                title = conv.get('title', 'New Chat')[:30]
+                if len(conv.get('title', '')) > 30:
+                    title += "..."
+                
+                if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
+                    st.session_state.current_conversation = conv
+                    # Load messages
+                    msgs = get_conversation_messages(supabase, conv['id'])
+                    st.session_state.messages = [
+                        {
+                            "role": m['role'],
+                            "content": m['content'],
+                            "raw_content": m['content'].split('\n\n', 1)[-1] if '\n\n' in m['content'] else m['content'],
+                            "agent": m.get('agent')
+                        }
+                        for m in msgs
+                    ]
+                    st.rerun()
+        else:
+            st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # Coaching Staff
+        st.markdown('''
+        <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">
+            👥 COACHING STAFF
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        for agent in Agent:
+            info = AGENT_INFO[agent]
+            with st.expander(f"{info['icon']} {info['name']}", expanded=False):
+                st.markdown(f'''
+                <div style="font-family:'Rajdhani',sans-serif;">
+                    <div style="color:{info['color']}; font-weight:600;">{info['title']}</div>
+                    <div style="color:#888; font-size:0.85rem;">{info['specialty']}</div>
+                </div>
+                ''', unsafe_allow_html=True)
+        
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        
+        # Logout
+        if st.button("🚪 LOGOUT", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.coach = None
+            st.session_state.messages = []
+            st.session_state.current_conversation = None
+            st.rerun()
+        
+        st.markdown('''
+        <div class="sidebar-divider"></div>
+        <div style="text-align:center; padding:1rem;">
+            <div style="font-family:'Rajdhani',sans-serif; color:#666; font-size:0.8rem;">
+                Powered by<br>
+                <span style="color:#FF6B35; font-family:'Orbitron',monospace;">OpenAI GPT</span>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+
+def render_header():
+    """Render main header"""
+    st.markdown('''
+    <div class="scoreboard">
+        <div class="hero-title">HOOPS AI</div>
+        <div class="hero-subtitle">Your Personal Assistant Coach</div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+def render_welcome():
+    """Render welcome banner for new chats"""
+    if not st.session_state.messages:
+        coach = st.session_state.get('coach', {})
+        
+        st.markdown(f'''
+        <div class="welcome-banner">
+            <div class="welcome-title">👋 Hey Coach {coach.get('name', '').split()[0] if coach.get('name') else ''}!</div>
+            <div class="welcome-text">Your AI coaching staff is ready. Ask anything about basketball strategy, player development, or team management.</div>
+            <div class="welcome-text" style="margin-top:0.5rem;">Tailored for: <strong style="color:#FF6B35;">{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}</strong></div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('''
+        <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:0.9rem; margin:1.5rem 0 1rem; letter-spacing:2px;">
+            ⚡ QUICK PLAYS
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        col3, col4 = st.columns(2)
+        col5, col6 = st.columns(2)
+        
+        with col1:
+            if st.button("🎯 PRACTICE PLAN\n\nBuild a 90-min practice", use_container_width=True):
+                st.session_state.pending_prompt = "Build me a 90-minute practice plan for my team, considering our age group and level."
+        with col2:
+            if st.button("📋 BEAT ZONE\n\nAttack 2-3 zone defense", use_container_width=True):
+                st.session_state.pending_prompt = "How should we attack a 2-3 zone defense? Give me specific actions and player movements."
+        with col3:
+            if st.button("💪 SHOOTING FORM\n\nTeach correct mechanics", use_container_width=True):
+                st.session_state.pending_prompt = "How do I teach correct shooting mechanics to my players? Break it down step by step."
+        with col4:
+            if st.button("👶 FUN DRILLS\n\nGames for kids 6-10", use_container_width=True):
+                st.session_state.pending_prompt = "Give me fun and engaging basketball games and drills for kids ages 6-10."
+        with col5:
+            if st.button("📊 GAME ANALYSIS\n\nAnalyze team stats", use_container_width=True):
+                st.session_state.pending_prompt = "I want to analyze my team's performance. What statistics should I provide you?"
+
+def render_chat(client, supabase):
+    """Render chat interface"""
+    coach = st.session_state.get('coach', {})
+    
+    # File upload section (can be triggered anytime)
+    if st.session_state.get('show_file_upload', False):
+        st.markdown('''
+        <div style="background: rgba(30,30,30,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1.5rem; margin: 1rem 0;">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1.1rem; margin-bottom:0.5rem;">📁 UPLOAD FILE FOR ANALYSIS</div>
+            <div style="color:#FFFFFF; font-size:0.9rem;">Supported formats: <span style="color:#FF6B35;">CSV, Excel, TXT, or Image (Screenshot)</span></div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        uploaded_file = st.file_uploader(
+            "Drop your file here or click to browse",
+            type=['csv', 'xlsx', 'xls', 'txt', 'png', 'jpg', 'jpeg', 'webp'],
+            key="stats_file_chat",
+            label_visibility="visible"
+        )
+        
+        analysis_type = st.selectbox(
+            "What do you want to analyze?",
+            ["Player individual stats", "Team stats", "Game stats", "Season overview", "Compare players"],
+            key="analysis_type_chat"
+        )
+        
+        col_analyze, col_cancel = st.columns(2)
+        
+        if uploaded_file is not None:
+            # Show file preview info
+            st.success(f"✅ File loaded: {uploaded_file.name}")
+            
+            with col_analyze:
+                if st.button("🔍 ANALYZE NOW", key="analyze_btn_chat", use_container_width=True):
+                    try:
+                        file_name = uploaded_file.name.lower()
+                        
+                        # Handle IMAGE files
+                        if file_name.endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                            import base64
+                            file_bytes = uploaded_file.getvalue()
+                            image_data = base64.b64encode(file_bytes).decode('utf-8')
+                            
+                            # Determine mime type
+                            if file_name.endswith('.png'):
+                                mime_type = "image/png"
+                            elif file_name.endswith('.webp'):
+                                mime_type = "image/webp"
+                            else:
+                                mime_type = "image/jpeg"
+                            
+                            # Store image data for vision API
+                            st.session_state.pending_image = {
+                                "data": image_data,
+                                "mime_type": mime_type
+                            }
+                            st.session_state.pending_prompt = f"""Analyze this image containing {analysis_type.lower()}.
+
+Extract ALL statistics and data visible in the image, then provide:
+1. Summary of the data you see
+2. Key insights
+3. Strengths identified  
+4. Areas for improvement
+5. Specific actionable recommendations"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+
+                        # Handle CSV files
+                        elif file_name.endswith('.csv'):
+                            import pandas as pd
+                            df = pd.read_csv(uploaded_file)
+                            file_content = df.to_string()
+                            st.session_state.pending_prompt = f"""Analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+
+                        # Handle Excel files
+                        elif file_name.endswith(('.xlsx', '.xls')):
+                            import pandas as pd
+                            df = pd.read_excel(uploaded_file)
+                            file_content = df.to_string()
+                            st.session_state.pending_prompt = f"""Analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+
+                        # Handle text files
+                        else:
+                            file_content = uploaded_file.read().decode('utf-8')
+                            st.session_state.pending_prompt = f"""Analyze the following {analysis_type.lower()}:
+
+DATA:
+{file_content}
+
+Provide:
+1. Key insights from the data
+2. Strengths identified
+3. Areas for improvement
+4. Specific recommendations
+5. What to focus on in practice"""
+                            st.session_state.show_file_upload = False
+                            st.rerun()
+                            
+                    except Exception as e:
+                        st.error(f"Error reading file: {e}")
+        
+        with col_cancel:
+            if st.button("❌ Cancel", key="cancel_upload_chat", use_container_width=True):
+                st.session_state.show_file_upload = False
                 st.rerun()
     
-    st.divider()
+    # Upload stats button (always visible)
+    if not st.session_state.get('show_file_upload', False):
+        if st.button("📁 Upload Stats File for Analysis", key="upload_stats_btn", use_container_width=False):
+            st.session_state.show_file_upload = True
+            st.rerun()
     
-    # Navigation
-    st.markdown("### 🧭 Navigation")
+    # Display chat history
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(msg["content"])
+        else:
+            agent = get_agent_from_value(msg.get("agent", Agent.ASSISTANT_COACH))
+            with st.chat_message("assistant", avatar=AGENT_INFO[agent]["icon"]):
+                st.markdown(msg["content"], unsafe_allow_html=True)
     
-    # Build navigation options with proper labels
-    nav_options = ["📊 Overview"]
-    comp_name_map = {}  # Map display name to actual name
+    # Handle pending prompt from quick buttons
+    prompt = st.session_state.pop("pending_prompt", None)
     
-    for name, info in active_competitions.items():
-        # Use a shorter format for dropdown
-        display_name = f"⚽ {name}"
-        nav_options.append(display_name)
-        comp_name_map[display_name] = name
+    # Or get new input
+    if not prompt:
+        prompt = st.chat_input("Ask your coaching question... | שאל את שאלתך...")
     
-    nav_options.append("➕ New Competition")
-    if archived_competitions:
-        nav_options.append("📁 Archive")
-    nav_options.append("⚙️ Manage Competitions")
-    
-    # Use session_state with the selectbox key directly
-    # Initialize only if not exists or if current value is invalid
-    if 'nav_selection' not in st.session_state:
-        st.session_state.nav_selection = "📊 Overview"
-    
-    # Validate that current selection still exists in options
-    if st.session_state.nav_selection not in nav_options:
-        st.session_state.nav_selection = "📊 Overview"
-    
-    # Create selectbox with session state
-    track = st.selectbox(
-        "Select View", 
-        nav_options, 
-        index=nav_options.index(st.session_state.nav_selection),
-        key="nav_selection",
-        label_visibility="collapsed"
-    )
-    
-    # Show competition logo below dropdown if a competition is selected
-    if track.startswith("⚽ "):
-        selected_comp = track.replace("⚽ ", "")
-        if selected_comp in active_competitions:
-            comp_logo = active_competitions[selected_comp].get('logo', '')
-            if comp_logo:
-                st.markdown(f"""
-                    <div style="text-align: center; padding: 10px;">
-                        <img src="{comp_logo}" style="height: 60px; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));">
-                    </div>
-                """, unsafe_allow_html=True)
-    
-    st.divider()
-    
-    if st.button("🔄 Refresh Data", use_container_width=True):
-        connect_to_sheets.clear()
+    if prompt:
+        # Create conversation if needed
+        if not st.session_state.get('current_conversation'):
+            conv = create_conversation(supabase, coach.get('id'), prompt[:50])
+            st.session_state.current_conversation = conv
+        
+        # Show user message
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Save user message
+        if st.session_state.current_conversation:
+            save_message(supabase, st.session_state.current_conversation['id'], "user", prompt)
+        
+        # Route and respond
+        with st.spinner("🏀 Analyzing..."):
+            agent = route_question(prompt, client, st.session_state.messages[:-1])
+        
+        # Check for pending image
+        image_data = st.session_state.pop("pending_image", None)
+        
+        info = AGENT_INFO[agent]
+        with st.chat_message("assistant", avatar=info["icon"]):
+            with st.spinner(f"Consulting {info['name']}..."):
+                raw_response = get_agent_response(
+                    prompt, agent, 
+                    st.session_state.messages[:-1], 
+                    client, 
+                    coach,  # Pass coach profile
+                    supabase,  # Pass supabase for RAG
+                    image_data  # Pass image data if available
+                )
+                formatted = format_response(raw_response, agent)
+            st.markdown(formatted, unsafe_allow_html=True)
+        
+        # Save assistant message
+        if st.session_state.current_conversation:
+            save_message(supabase, st.session_state.current_conversation['id'], "assistant", formatted, agent.value)
+        
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": formatted,
+            "raw_content": raw_response,
+            "agent": agent.value
+        })
         st.rerun()
 
 
-# --- 7. MAIN DISPLAY ---
-if error_msg:
-    st.error(f"⚠️ Connection Error: {error_msg}")
-    st.info("The app is running in offline mode. Please check your connection settings.")
-    st.stop()
-
-# --- OVERVIEW PAGE ---
-if track == "📊 Overview":
-    st.markdown("""
-        <div class="comp-banner-box" style="background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 50%, #4a7c59 100%);">
-            <h1 class="overview-banner-text">OVERVIEW</h1>
-        </div>
-    """, unsafe_allow_html=True)
+def render_mobile_nav(supabase):
+    """Render mobile-only navigation buttons"""
+    coach = st.session_state.get('coach', {})
     
-    balance_color = "#4CAF50" if current_bal >= initial_bankroll else "#FF5252"
-    st.markdown(f"""
-        <div class="balance-container">
-            <p class="balance-label">TOTAL BALANCE</p>
-            <h1 class="balance-value" style="color: {balance_color};">₪{current_bal:,.2f}</h1>
-        </div>
-    """, unsafe_allow_html=True)
+    # CSS to hide on desktop
+    st.markdown('''
+    <style>
+    @media (min-width: 768px) {
+        .mobile-nav-section {
+            display: none !important;
+        }
+    }
+    </style>
+    <div class="mobile-nav-section">
+    ''', unsafe_allow_html=True)
     
-    st.markdown('<p class="section-title">📈 Active Competitions</p>', unsafe_allow_html=True)
+    # Mobile navigation buttons
+    col1, col2, col3 = st.columns(3)
     
-    if active_competitions and not df.empty:
-        for comp_name, comp_info in active_competitions.items():
-            comp_df = df[df['Comp'] == comp_name]
-            comp_profit = comp_df['Profit'].sum() if not comp_df.empty else 0
-            stats = competition_stats.get(comp_name, {"total_staked": 0, "total_income": 0, "net_profit": 0})
-            
-            profit_class = "overview-profit-positive" if comp_profit >= 0 else "overview-profit-negative"
-            profit_sign = "+" if comp_profit >= 0 else ""
-            
-            logo_html = f'<img src="{comp_info["logo"]}" alt="{comp_name}">' if comp_info["logo"] else ''
-            
-            st.markdown(f"""
-                <div class="overview-comp-card" style="background: {comp_info['gradient']};">
-                    <div class="overview-comp-header">
-                        {logo_html}
-                        <h3 class="overview-comp-name">{comp_name}</h3>
-                        <div style="flex: 1;"></div>
-                        <span class="overview-comp-profit {profit_class}">{profit_sign}₪{comp_profit:,.0f}</span>
-                    </div>
-                    <div class="overview-stats-row">
-                        <div class="overview-stat-item">
-                            <div class="overview-stat-label">Total Staked</div>
-                            <div class="overview-stat-value">₪{stats['total_staked']:,.0f}</div>
-                        </div>
-                        <div class="overview-stat-item">
-                            <div class="overview-stat-label">Total Won</div>
-                            <div class="overview-stat-value overview-stat-value-green">₪{stats['total_income']:,.0f}</div>
-                        </div>
-                        <div class="overview-stat-item">
-                            <div class="overview-stat-label">Matches</div>
-                            <div class="overview-stat-value">{len(comp_df)}</div>
-                        </div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-    elif not active_competitions:
-        st.markdown("""
-            <div class="info-message">
-                📭 No active competitions. Create your first competition to get started!
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-            <div class="info-message">
-                📭 No betting data available yet. Add your first match to get started!
-            </div>
-        """, unsafe_allow_html=True)
-
-# --- NEW COMPETITION PAGE ---
-elif track == "➕ New Competition":
-    st.markdown("""
-        <div class="comp-banner-box" style="background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);">
-            <h1 class="overview-banner-text">➕ NEW COMPETITION</h1>
-        </div>
-    """, unsafe_allow_html=True)
+    with col1:
+        if st.button("➕ NEW", key="mobile_new_btn", use_container_width=True):
+            st.session_state.current_conversation = None
+            st.session_state.messages = []
+            st.session_state.show_mobile_history = False
+            st.rerun()
     
-    st.markdown("""
-        <div class="form-card">
-            <div class="form-card-title">
-                <span style="font-size: 1.5rem;">🏆</span>
-                <span style="color: #2d3748 !important;">Create New Competition</span>
+    with col2:
+        if st.button("📜 HISTORY", key="mobile_history_btn", use_container_width=True):
+            st.session_state.show_mobile_history = not st.session_state.get('show_mobile_history', False)
+            st.rerun()
+    
+    with col3:
+        if st.button("🚪 LOGOUT", key="mobile_logout_btn", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.coach = None
+            st.session_state.messages = []
+            st.session_state.current_conversation = None
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    # Show history panel if toggled
+    if st.session_state.get('show_mobile_history', False):
+        st.markdown('''
+        <div style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;">
+            <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">
+                📜 CHAT HISTORY
             </div>
         </div>
-    """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
+        
+        conversations = get_coach_conversations(supabase, coach.get('id'))
+        
+        if not conversations:
+            st.markdown('<div style="text-align:center; color:#888; padding:0.5rem;">No previous conversations</div>', unsafe_allow_html=True)
+        else:
+            for conv in conversations[:10]:
+                title = conv.get('title', 'Untitled')[:35]
+                if len(conv.get('title', '')) > 35:
+                    title += "..."
+                
+                if st.button(f"💬 {title}", key=f"mob_conv_{conv['id']}", use_container_width=True):
+                    st.session_state.current_conversation = conv
+                    messages = get_conversation_messages(supabase, conv['id'])
+                    st.session_state.messages = []
+                    for msg in messages:
+                        st.session_state.messages.append({
+                            "role": msg['role'],
+                            "content": msg['content'],
+                            "raw_content": msg['content'],
+                            "agent": msg.get('agent', 'assistant_coach')
+                        })
+                    st.session_state.show_mobile_history = False
+                    st.rerun()
+        
+        if st.button("❌ CLOSE", key="close_mob_history", use_container_width=True):
+            st.session_state.show_mobile_history = False
+            st.rerun()
     
-    with st.form("new_competition_form"):
-        comp_name = st.text_input("Competition Name *", placeholder="e.g., Premier League")
-        comp_desc = st.text_input("Description", placeholder="e.g., English top division")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            default_stake = st.number_input("Default Stake (₪)", min_value=1.0, value=30.0, step=5.0)
-        with col2:
-            logo_url = st.text_input("Logo URL", placeholder="https://example.com/logo.png")
-        
-        st.markdown("**Colors:**")
-        col3, col4, col5 = st.columns(3)
-        with col3:
-            color1 = st.color_picker("Primary Color", "#4CABFF")
-        with col4:
-            color2 = st.color_picker("Secondary Color", "#E6F7FF")
-        with col5:
-            text_color = st.color_picker("Text Color", "#004085")
-        
-        # Preview
-        st.markdown("**Preview:**")
-        preview_gradient = f"linear-gradient(135deg, {color1} 0%, {color2} 100%)"
-        logo_preview = f'<img src="{logo_url}" style="height:50px; margin-right:15px;">' if logo_url else ''
-        st.markdown(f"""
-            <div style="background: {preview_gradient}; border-radius: 15px; padding: 20px; display: flex; align-items: center; justify-content: center;">
-                {logo_preview}
-                <span style="color: {text_color}; font-weight: bold; font-size: 1.3rem;">{comp_name or 'Competition Name'}</span>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        submitted = st.form_submit_button("✅ Create Competition", use_container_width=True, type="primary")
-        
-        if submitted:
-            if comp_name:
-                if comp_name in competitions:
-                    st.error(f"⚠️ Competition '{comp_name}' already exists!")
-                else:
-                    with st.spinner('⚽ Creating competition...'):
-                        ws = get_competitions_worksheet()
-                        if ws:
-                            new_row = [
-                                comp_name,
-                                comp_desc,
-                                default_stake,
-                                color1,
-                                color2,
-                                text_color,
-                                logo_url,
-                                "Active",
-                                str(datetime.date.today()),
-                                ""
-                            ]
-                            ws.append_row(new_row)
-                            connect_to_sheets.clear()
-                            st.success(f"✅ Competition '{comp_name}' created!")
-                            st.rerun()
-            else:
-                st.error("⚠️ Please enter a competition name")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- ARCHIVE PAGE ---
-elif track == "📁 Archive":
-    st.markdown("""
-        <div class="comp-banner-box" style="background: linear-gradient(135deg, #636e72 0%, #b2bec3 100%);">
-            <h1 class="overview-banner-text">📁 ARCHIVE</h1>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<p class="section-title">📜 Closed Competitions</p>', unsafe_allow_html=True)
-    
-    if archived_competitions:
-        for comp_name, comp_info in archived_competitions.items():
-            comp_df = df[df['Comp'] == comp_name]
-            comp_profit = comp_df['Profit'].sum() if not comp_df.empty else 0
-            stats = competition_stats.get(comp_name, {"total_staked": 0, "total_income": 0, "net_profit": 0})
-            
-            profit_color = "#90EE90" if comp_profit >= 0 else "#FFB6C1"
-            logo_html = f'<img src="{comp_info["logo"]}" style="height:40px; margin-right:15px;">' if comp_info["logo"] else ''
-            
-            st.markdown(f"""
-                <div class="archive-card">
-                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                        {logo_html}
-                        <h4>{comp_name}</h4>
-                    </div>
-                    <p>📅 Closed: {comp_info['closed_date'] or 'N/A'}</p>
-                    <p>💰 Total Staked: ₪{stats['total_staked']:,.0f}</p>
-                    <p>🏆 Total Won: ₪{stats['total_income']:,.0f}</p>
-                    <p style="font-size: 1.2rem; color: {profit_color};">📈 Final Profit: ₪{comp_profit:,.0f}</p>
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-            <div class="info-message">
-                📭 No archived competitions yet.
-            </div>
-        """, unsafe_allow_html=True)
 
-# --- MANAGE COMPETITIONS PAGE ---
-elif track == "⚙️ Manage Competitions":
-    st.markdown("""
-        <div class="comp-banner-box" style="background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);">
-            <h1 class="overview-banner-text">⚙️ MANAGE COMPETITIONS</h1>
-        </div>
-    """, unsafe_allow_html=True)
+# ============================================================================
+# MAIN
+# ============================================================================
+def main():
+    # Initialize session state
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "current_conversation" not in st.session_state:
+        st.session_state.current_conversation = None
+    if "show_mobile_history" not in st.session_state:
+        st.session_state.show_mobile_history = False
     
-    st.markdown('<p class="section-title">🏆 Active Competitions</p>', unsafe_allow_html=True)
+    # Initialize clients
+    supabase = get_supabase_client()
+    openai_client = get_openai_client()
     
-    for comp_name, comp_info in active_competitions.items():
-        with st.expander(f"⚽ {comp_name}", expanded=False):
-            # Use white text for visibility
-            st.markdown(f"""
-                <div style="color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-                    <p><strong>📝 Description:</strong> {comp_info['description'] or 'N/A'}</p>
-                    <p><strong>💵 Default Stake:</strong> ₪{comp_info['default_stake']}</p>
-                    <p><strong>📅 Created:</strong> {comp_info['created_date']}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                new_stake = st.number_input(
-                    f"Update Default Stake",
-                    min_value=1.0,
-                    value=float(comp_info['default_stake']),
-                    step=5.0,
-                    key=f"stake_{comp_name}"
-                )
-                if st.button("💾 Save Stake", key=f"save_{comp_name}"):
-                    with st.spinner('⚽'):
-                        ws = get_competitions_worksheet()
-                        if ws:
-                            ws.update_cell(comp_info['row'], 3, new_stake)  # Column C = Default_Stake
-                            connect_to_sheets.clear()
-                            st.success("✅ Updated!")
-                            st.rerun()
-            
-            with col2:
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(f"🔒 Close Competition", key=f"close_{comp_name}"):
-                    with st.spinner('⚽'):
-                        ws = get_competitions_worksheet()
-                        if ws:
-                            ws.update_cell(comp_info['row'], 8, "Closed")  # Column H = Status
-                            ws.update_cell(comp_info['row'], 10, str(datetime.date.today()))  # Column J = Closed_Date
-                            connect_to_sheets.clear()
-                            st.success(f"✅ '{comp_name}' closed and moved to archive!")
-                            st.rerun()
-
-# --- COMPETITION PAGES ---
-elif track.startswith("⚽ "):
-    comp_name = track.replace("⚽ ", "")
-    
-    if comp_name not in active_competitions:
-        st.error("Competition not found!")
+    if not supabase:
+        st.error("⚠️ Database connection failed. Check SUPABASE_URL and SUPABASE_KEY in secrets.")
         st.stop()
     
-    comp_info = active_competitions[comp_name]
+    if not openai_client:
+        st.error("⚠️ OpenAI connection failed. Check OPENAI_API_KEY in secrets.")
+        st.stop()
     
-    # Competition Banner
-    logo_html = f'<img src="{comp_info["logo"]}" alt="{comp_name}">' if comp_info["logo"] else ''
-    st.markdown(f"""
-        <div class="comp-banner-box" style="background: {comp_info['gradient']};">
-            {logo_html}
-            <h1 class="comp-banner-text" style="color: {comp_info['text_color']};">{comp_name.upper()}</h1>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Current Balance
-    balance_color = "#4CAF50" if current_bal >= initial_bankroll else "#FF5252"
-    st.markdown(f"""
-        <div class="balance-container">
-            <p class="balance-label">CURRENT BALANCE</p>
-            <h1 class="balance-value" style="color: {balance_color};">₪{current_bal:,.2f}</h1>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Filter data for this competition
-    comp_df = df[df['Comp'] == comp_name].copy() if not df.empty else pd.DataFrame()
-    stats = competition_stats.get(comp_name, {"total_staked": 0, "total_income": 0, "net_profit": 0})
-    
-    # Statistics Boxes
-    st.markdown(f"""
-        <div class="stats-container">
-            <div class="stat-box stat-box-total">
-                <div class="stat-label">💰 Total Staked</div>
-                <div class="stat-value">₪{stats['total_staked']:,.0f}</div>
-            </div>
-            <div class="stat-box stat-box-income">
-                <div class="stat-label">🏆 Total Won</div>
-                <div class="stat-value">₪{stats['total_income']:,.0f}</div>
-            </div>
-            <div class="stat-box stat-box-profit">
-                <div class="stat-label">📈 Net Profit</div>
-                <div class="stat-value">₪{stats['net_profit']:,.0f}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Next Bet Display
-    next_bet = next_stakes.get(comp_name, comp_info['default_stake'])
-    st.markdown(f"""
-        <div class="next-bet-display">
-            <div class="next-bet-label">NEXT RECOMMENDED BET</div>
-            <div class="next-bet-value">₪{next_bet:,.0f}</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Add Match Form
-    st.markdown("""
-        <div class="form-card">
-            <div class="form-card-title">
-                <span style="font-size: 1.5rem;">⚽</span>
-                <span style="color: #2d3748 !important;">Add New Match</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    with st.form("add_match_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            home_team = st.text_input("Home Team", placeholder="Enter home team name")
-        with col2:
-            away_team = st.text_input("Away Team", placeholder="Enter away team name")
-        
-        col3, col4 = st.columns(2)
-        with col3:
-            odds = st.number_input("Odds", min_value=1.01, value=3.20, step=0.1)
-        with col4:
-            stake = st.number_input("Stake (₪)", min_value=1.0, value=float(next_bet), step=10.0)
-        
-        st.write("")
-        result = st.radio("Match Result", ["Pending", "Draw (X)", "No Draw"], horizontal=True)
-        
-        st.write("")
-        submitted = st.form_submit_button("✅ Add Match", use_container_width=True, type="primary")
-        
-        if submitted:
-            if home_team and away_team:
-                with st.spinner('⚽ Adding match...'):
-                    ws = get_matches_worksheet()
-                    if ws:
-                        new_row = [
-                            str(datetime.date.today()),
-                            comp_name,
-                            home_team,
-                            away_team,
-                            odds,
-                            result,
-                            stake,
-                            0
-                        ]
-                        try:
-                            ws.append_row(new_row)
-                            connect_to_sheets.clear()
-                            st.success(f"✅ Added: {home_team} vs {away_team}")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Error saving to sheet: {str(e)}")
-                    else:
-                        st.error("❌ Could not connect to worksheet!")
-            else:
-                st.error("⚠️ Please enter both team names")
-    
-    # Match History
-    st.markdown('<p class="section-title">📜 Match History</p>', unsafe_allow_html=True)
-    
-    if not comp_df.empty:
-        for _, row in comp_df.sort_index(ascending=False).iterrows():
-            if row['Status'] == "Won":
-                card_class = "match-card-won"
-                profit_class = "match-profit-positive"
-                profit_prefix = "+"
-            elif row['Status'] == "Lost":
-                card_class = "match-card-lost"
-                profit_class = "match-profit-negative"
-                profit_prefix = ""
-            else:
-                card_class = "match-card-pending"
-                profit_class = "match-profit-neutral"
-                profit_prefix = ""
-            
-            st.markdown(f"""
-                <div class="match-card {card_class}">
-                    <div class="match-info">
-                        <div class="match-name">{row['Match']}</div>
-                        <div class="match-details">
-                            📅 {row['Date']} &nbsp;|&nbsp; 💵 Stake: ₪{row['Stake']:,.0f} &nbsp;|&nbsp; 📊 Odds: {row['Odds']:.2f} &nbsp;|&nbsp; 
-                            <strong>{row['Status']}</strong>
-                        </div>
-                    </div>
-                    <div class="match-profit {profit_class}">
-                        {profit_prefix}₪{row['Profit']:,.0f}
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            if row['Status'] == "Pending":
-                col1, col2, col3 = st.columns([1, 1, 2])
-                with col1:
-                    if st.button("✅ WIN", key=f"win_{row['Row']}", use_container_width=True):
-                        with st.spinner('⚽'):
-                            ws = get_matches_worksheet()
-                            if ws:
-                                ws.update_cell(row['Row'], RESULT_COL, "Draw (X)")
-                                connect_to_sheets.clear()
-                                st.rerun()
-                with col2:
-                    if st.button("❌ LOSS", key=f"loss_{row['Row']}", use_container_width=True):
-                        with st.spinner('⚽'):
-                            ws = get_matches_worksheet()
-                            if ws:
-                                ws.update_cell(row['Row'], RESULT_COL, "No Draw")
-                                connect_to_sheets.clear()
-                                st.rerun()
+    # Show login or main app
+    if not st.session_state.logged_in:
+        render_login_page(supabase)
     else:
-        st.markdown("""
-            <div class="info-message">
-                📭 No matches recorded yet for this competition. Add your first match above!
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+        render_sidebar(supabase)
+        render_mobile_nav(supabase)  # Mobile navigation
+        render_header()
+        render_welcome()
+        render_chat(openai_client, supabase)
 
-
-# --- FOOTER ---
-st.markdown("<br><br>", unsafe_allow_html=True)
-st.markdown("""
-    <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; padding: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
-        Elite Football Tracker v3.0 | Built with ❤️ using Streamlit
-    </div>
-""", unsafe_allow_html=True)
+if __name__ == "__main__":
+    main()

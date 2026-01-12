@@ -101,26 +101,11 @@ CSS_TEMPLATE = """
     /* ===== HIDE STREAMLIT DEFAULTS ===== */
     #MainMenu, footer, header {visibility: hidden;}
     
-    /* ===== FIX EXPANDER ARROW - Hide "keyboard_arrow_right" text ===== */
-    [data-testid="stSidebar"] details[data-testid="stExpander"] summary svg {
-        display: inline-block !important;
-    }
-    
-    [data-testid="stSidebar"] details summary > div > div:first-child {
-        font-size: 0 !important;
-        width: 20px !important;
-        height: 20px !important;
-        overflow: hidden !important;
-    }
-    
-    [data-testid="stSidebar"] details summary > div > div:first-child::after {
-        content: '▶' !important;
-        font-size: 0.75rem !important;
-        display: block !important;
-    }
-    
-    [data-testid="stSidebar"] details[open] summary > div > div:first-child::after {
-        content: '▼' !important;
+    /* ===== AGENT CARDS HOVER ===== */
+    .agent-card:hover {
+        transform: translateX(5px) !important;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3) !important;
+        border-left-width: 6px !important;
     }
     
     /* ===== GLOBAL TEXT ===== */

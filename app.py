@@ -134,13 +134,31 @@ def render_sidebar(supabase):
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Coaching Staff
+        # Coaching Staff - Using HTML cards instead of expanders
         st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
         
         for agent in Agent:
             info = AGENT_INFO[agent]
-            with st.expander(f"{info['icon']} {info['name']}", expanded=False):
-                st.markdown(f'<div style="font-family:\'Rajdhani\',sans-serif;"><div style="color:{info["color"]}; font-weight:600;">{info["title"]}</div><div style="color:#888; font-size:0.85rem;">{info["specialty"]}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'''
+            <div class="agent-card" style="
+                background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(40,40,40,0.6));
+                border: 1px solid {info["color"]}40;
+                border-left: 4px solid {info["color"]};
+                border-radius: 10px;
+                padding: 0.8rem 1rem;
+                margin-bottom: 0.5rem;
+                transition: all 0.3s ease;
+                cursor: default;
+            ">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="font-size:1.3rem;">{info["icon"]}</span>
+                    <div>
+                        <div style="font-family:'Rajdhani',sans-serif; font-weight:700; color:#FFFFFF; font-size:0.9rem;">{info["name"]}</div>
+                        <div style="color:{info["color"]}; font-size:0.75rem;">{info["specialty"]}</div>
+                    </div>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         

@@ -15,7 +15,7 @@ APP_ICON = "favicon.png"
 # ============================================================================
 # URLS
 # ============================================================================
-LOGO_URL = "https://i.postimg.cc/DfYpGxMy/Fashion-Bran-Logo.png"
+LOGO_URL = "https://i.postimg.cc/WpnXDQym/LOGO-HOOPS-AI.png"
 BACKGROUND_URL = "https://i.postimg.cc/nr6WXxHh/wlm-kdwrsl.jpg"
 
 # ============================================================================

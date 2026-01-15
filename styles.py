@@ -772,74 +772,139 @@ CSS_TEMPLATE = """
         border-radius: 10px !important;
     }
     
-    /* Calendar text - all elements */
-    [data-baseweb="calendar"] *,
-    [data-baseweb="datepicker"] *,
-    [data-baseweb="calendar"] button,
-    [data-baseweb="calendar"] div,
-    [data-baseweb="calendar"] span {
-        color: #FFFFFF !important;
-    }
+    /* ========== CALENDAR MONTH/YEAR DROPDOWNS - AGGRESSIVE FIX ========== */
     
-    /* Calendar month/year dropdown selectors */
-    [data-baseweb="calendar"] [data-baseweb="select"] > div,
-    [data-baseweb="calendar"] select,
-    [data-baseweb="calendar"] [role="listbox"],
-    [data-baseweb="calendar"] [data-baseweb="popover"] {
-        background: #1a1a1a !important;
-        background-color: #1a1a1a !important;
-        color: #FFFFFF !important;
-    }
-    
-    /* Month/Year dropdown text */
-    [data-baseweb="calendar"] [data-baseweb="select"] span,
-    [data-baseweb="calendar"] [data-baseweb="select"] div,
-    [data-baseweb="calendar"] [aria-haspopup="listbox"] span {
-        color: #FFFFFF !important;
+    /* The popover container that holds the calendar */
+    [data-baseweb="popover"] {
         background: transparent !important;
     }
     
-    /* Calendar dropdown menu */
-    [data-baseweb="calendar"] [data-baseweb="menu"],
-    [data-baseweb="calendar"] ul[role="listbox"] {
+    [data-baseweb="popover"] > div > div {
+        background: #1a1a1a !important;
+    }
+    
+    /* Month and Year select containers in calendar header */
+    [data-baseweb="calendar"] [data-baseweb="select"],
+    [data-baseweb="datepicker"] [data-baseweb="select"] {
+        background: #1a1a1a !important;
+    }
+    
+    [data-baseweb="calendar"] [data-baseweb="select"] > div,
+    [data-baseweb="datepicker"] [data-baseweb="select"] > div {
         background: #1a1a1a !important;
         background-color: #1a1a1a !important;
         border: 1px solid rgba(255, 107, 53, 0.3) !important;
     }
     
-    /* Calendar dropdown options */
-    [data-baseweb="calendar"] [data-baseweb="menu"] li,
-    [data-baseweb="calendar"] [role="option"] {
+    /* The actual text showing month/year */
+    [data-baseweb="calendar"] [data-baseweb="select"] [data-baseweb="tag"],
+    [data-baseweb="calendar"] [data-baseweb="select"] > div > div,
+    [data-baseweb="calendar"] [data-baseweb="select"] > div > div > div,
+    [data-baseweb="calendar"] [data-baseweb="select"] span,
+    [data-baseweb="datepicker"] [data-baseweb="select"] span {
         color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
         background: transparent !important;
     }
     
-    [data-baseweb="calendar"] [data-baseweb="menu"] li:hover,
-    [data-baseweb="calendar"] [role="option"]:hover {
-        background: rgba(255, 107, 53, 0.2) !important;
+    /* Calendar header row with month/year */
+    [data-baseweb="calendar"] > div:first-child,
+    [data-baseweb="calendar-header"] {
+        background: #1a1a1a !important;
     }
     
-    /* Calendar selected date */
+    [data-baseweb="calendar"] > div:first-child *,
+    [data-baseweb="calendar-header"] * {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+    
+    /* Week day headers (Su, Mo, Tu, etc) */
+    [data-baseweb="calendar"] [role="row"]:first-child div,
+    [data-baseweb="calendar"] thead th {
+        color: #FF6B35 !important;
+        -webkit-text-fill-color: #FF6B35 !important;
+    }
+    
+    /* All day buttons/cells in the calendar */
+    [data-baseweb="calendar"] [role="gridcell"],
+    [data-baseweb="calendar"] [role="gridcell"] > div,
+    [data-baseweb="calendar"] button {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        background: transparent !important;
+    }
+    
+    /* Day numbers */
+    [data-baseweb="calendar"] [role="gridcell"] div,
+    [data-baseweb="calendar"] td div {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+    
+    /* Selected date - orange background, black text */
     [data-baseweb="calendar"] [aria-selected="true"],
-    [data-baseweb="calendar"] [data-selected="true"] {
+    [data-baseweb="calendar"] [aria-selected="true"] div,
+    [data-baseweb="calendar"] [data-highlighted="true"] {
         background: #FF6B35 !important;
+        background-color: #FF6B35 !important;
         color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
     }
     
-    /* Calendar hover */
+    /* Today's date indicator */
+    [data-baseweb="calendar"] [data-today="true"] {
+        border: 2px solid #FF6B35 !important;
+    }
+    
+    /* Hover state for days */
+    [data-baseweb="calendar"] [role="gridcell"]:hover,
     [data-baseweb="calendar"] button:hover {
         background: rgba(255, 107, 53, 0.2) !important;
     }
     
-    /* Calendar navigation arrows */
-    [data-baseweb="calendar"] [data-baseweb="button"] {
+    /* Navigation arrows (< >) */
+    [data-baseweb="calendar"] [aria-label*="previous"],
+    [data-baseweb="calendar"] [aria-label*="next"],
+    [data-baseweb="calendar"] svg {
         color: #FF6B35 !important;
+        fill: #FF6B35 !important;
     }
     
-    /* Time picker dropdown */
-    [data-baseweb="time-picker"],
-    [data-baseweb="timepicker"] {
+    /* The month/year dropdown menus when opened */
+    [data-baseweb="popover"] [data-baseweb="menu"],
+    [data-baseweb="popover"] ul,
+    [data-baseweb="calendar"] ~ [data-baseweb="popover"] > div {
         background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    /* Items in month/year dropdown */
+    [data-baseweb="popover"] [data-baseweb="menu"] li,
+    [data-baseweb="popover"] ul li,
+    [data-baseweb="popover"] [role="option"] {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        background: transparent !important;
+    }
+    
+    [data-baseweb="popover"] [data-baseweb="menu"] li:hover,
+    [data-baseweb="popover"] ul li:hover,
+    [data-baseweb="popover"] [role="option"]:hover {
+        background: rgba(255, 107, 53, 0.2) !important;
+    }
+    
+    /* Time picker */
+    [data-baseweb="time-picker"],
+    [data-baseweb="timepicker"],
+    [data-baseweb="combobox"] {
+        background: #1a1a1a !important;
+    }
+    
+    [data-baseweb="combobox"] input {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }
     
     /* Time picker menu */

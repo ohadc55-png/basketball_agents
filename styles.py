@@ -587,24 +587,101 @@ CSS_TEMPLATE = """
         box-shadow: 0 5px 20px rgba(255, 107, 53, 0.2);
     }
     
-    /* ===== FORM INPUTS ===== */
-    .stTextInput input {
-        background: linear-gradient(135deg, rgba(30, 30, 30, 0.9), rgba(40, 40, 40, 0.85)) !important;
-        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    /* ===== FORM INPUTS - DARK THEME ===== */
+    .stTextInput input,
+    .stNumberInput input,
+    .stDateInput input,
+    .stTimeInput input,
+    .stTextArea textarea {
+        background: rgba(30, 30, 30, 0.95) !important;
+        border: 1px solid rgba(255, 107, 53, 0.4) !important;
         border-radius: var(--radius-md) !important;
-        color: var(--text-primary) !important;
+        color: #FFFFFF !important;
         padding: 0.8rem 1rem !important;
         font-family: 'Inter', sans-serif !important;
         transition: all var(--transition-normal) !important;
     }
     
-    .stTextInput input:focus {
+    .stTextInput input:focus,
+    .stNumberInput input:focus,
+    .stDateInput input:focus,
+    .stTimeInput input:focus,
+    .stTextArea textarea:focus {
         border-color: var(--primary) !important;
         box-shadow: 0 0 15px var(--shadow-glow) !important;
+        outline: none !important;
     }
     
-    .stTextInput input::placeholder {
-        color: var(--text-muted) !important;
+    .stTextInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #888888 !important;
+    }
+    
+    /* Form Labels */
+    .stTextInput label,
+    .stNumberInput label,
+    .stDateInput label,
+    .stTimeInput label,
+    .stTextArea label,
+    .stSelectbox label,
+    .stCheckbox label,
+    .stRadio label {
+        color: #FFFFFF !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Selectbox / Dropdown */
+    .stSelectbox > div > div {
+        background: rgba(30, 30, 30, 0.95) !important;
+        border: 1px solid rgba(255, 107, 53, 0.4) !important;
+        border-radius: var(--radius-md) !important;
+        color: #FFFFFF !important;
+    }
+    
+    .stSelectbox > div > div:hover {
+        border-color: var(--primary) !important;
+    }
+    
+    /* Dropdown menu items */
+    [data-baseweb="menu"] {
+        background: rgba(30, 30, 30, 0.98) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    [data-baseweb="menu"] li {
+        color: #FFFFFF !important;
+    }
+    
+    [data-baseweb="menu"] li:hover {
+        background: rgba(255, 107, 53, 0.2) !important;
+    }
+    
+    /* Date/Time picker popups */
+    [data-baseweb="calendar"],
+    [data-baseweb="datepicker"],
+    [data-baseweb="popover"] > div {
+        background: rgba(30, 30, 30, 0.98) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        color: #FFFFFF !important;
+    }
+    
+    [data-baseweb="calendar"] * {
+        color: #FFFFFF !important;
+    }
+    
+    [data-baseweb="calendar"] [aria-selected="true"] {
+        background: var(--primary) !important;
+        color: #000000 !important;
+    }
+    
+    /* Checkbox styling */
+    .stCheckbox > label > span {
+        color: #FFFFFF !important;
+    }
+    
+    .stCheckbox [data-testid="stCheckbox"] {
+        background: rgba(30, 30, 30, 0.95) !important;
     }
     
     /* ===== TABS ===== */

@@ -194,7 +194,7 @@ def render_day_events(supabase, coach_id, selected_date):
 # EVENT FORM
 # ============================================================================
 def render_event_form(supabase, coach_id, event_id=None):
-    """Render form to add/edit an event"""
+    """Render form to add/edit an event with recurring option"""
     
     is_edit = event_id is not None
     event = get_event_by_id(supabase, event_id) if is_edit else {}
@@ -217,7 +217,7 @@ def render_event_form(supabase, coach_id, event_id=None):
         col1, col2 = st.columns(2)
         with col1:
             default_date = datetime.strptime(st.session_state.get('new_event_date', date.today().isoformat()), '%Y-%m-%d').date() if not is_edit else datetime.strptime(event.get('event_date', date.today().isoformat()), '%Y-%m-%d').date()
-            event_date = st.date_input("Date", value=default_date)
+            event_date = st.date_input("Start Date", value=default_date)
         
         with col2:
             facilities = get_facilities(supabase, coach_id)
@@ -240,8 +240,31 @@ def render_event_form(supabase, coach_id, event_id=None):
         with col4:
             time_end = st.time_input("End Time", value=datetime.strptime(event.get('time_end', '19:30'), '%H:%M:%S').time() if event.get('time_end') else datetime.strptime('19:30', '%H:%M').time())
         
+        # Recurring event option (only for new events)
+        if not is_edit:
+            st.markdown("---")
+            st.markdown("**🔄 Recurring Event (Optional)**")
+            
+            is_recurring = st.checkbox("Repeat this event weekly", value=False)
+            
+            if is_recurring:
+                col_r1, col_r2 = st.columns(2)
+                with col_r1:
+                    # Show which day of week
+                    day_name = event_date.strftime('%A')
+                    st.info(f"📅 Will repeat every **{day_name}**")
+                with col_r2:
+                    # End date for recurring
+                    default_end = event_date + timedelta(weeks=12)  # 3 months default
+                    recurring_end_date = st.date_input("Repeat until", value=default_end)
+        else:
+            is_recurring = False
+            recurring_end_date = None
+        
         # Game-specific fields
         if event_type == 'game':
+            st.markdown("---")
+            st.markdown("**🏀 Game Details**")
             col5, col6 = st.columns(2)
             with col5:
                 opponent = st.text_input("Opponent", value=event.get('opponent', ''))
@@ -277,8 +300,22 @@ def render_event_form(supabase, coach_id, event_id=None):
                 update_event(supabase, event_id, data)
                 st.success("Event updated!")
             else:
-                create_event(supabase, coach_id, data)
-                st.success("Event created!")
+                # Handle recurring events
+                if is_recurring and recurring_end_date:
+                    events_created = 0
+                    current_date = event_date
+                    
+                    while current_date <= recurring_end_date:
+                        event_data = data.copy()
+                        event_data["event_date"] = current_date.isoformat()
+                        create_event(supabase, coach_id, event_data)
+                        events_created += 1
+                        current_date += timedelta(weeks=1)
+                    
+                    st.success(f"✅ Created {events_created} recurring events!")
+                else:
+                    create_event(supabase, coach_id, data)
+                    st.success("Event created!")
             
             st.session_state.adding_event = False
             st.session_state.editing_event = None

@@ -107,6 +107,10 @@ def render_sidebar(supabase):
         if 'current_page' not in st.session_state:
             st.session_state.current_page = 'chat'
         
+        # Navigation with custom styling
+        chat_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'chat' else ""
+        manage_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'logistics' else ""
+        
         col_nav1, col_nav2 = st.columns(2)
         with col_nav1:
             if st.button("💬 CHAT", use_container_width=True, key="nav_chat",
@@ -114,7 +118,7 @@ def render_sidebar(supabase):
                 st.session_state.current_page = 'chat'
                 st.rerun()
         with col_nav2:
-            if st.button("📋 MANAGE", use_container_width=True, key="nav_logistics",
+            if st.button("📋 MGR", use_container_width=True, key="nav_logistics",
                         type="primary" if st.session_state.current_page == 'logistics' else "secondary"):
                 st.session_state.current_page = 'logistics'
                 st.rerun()
@@ -135,24 +139,24 @@ def render_sidebar(supabase):
             st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
             
             conversations = get_coach_conversations(supabase, coach.get('id'))
-        if conversations:
-            for conv in conversations[:10]:
-                title = conv.get('title', 'New Chat')[:30]
-                if len(conv.get('title', '')) > 30:
-                    title += "..."
-                if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
-                    st.session_state.current_conversation = conv
-                    msgs = get_conversation_messages(supabase, conv['id'])
-                    st.session_state.messages = [
-                        {
-                            "role": m['role'],
-                            "content": m['content'],
-                            "raw_content": m['content'].split('\n\n', 1)[-1] if '\n\n' in m['content'] else m['content'],
-                            "agent": m.get('agent')
-                        }
-                        for m in msgs
-                    ]
-                    st.rerun()
+            if conversations:
+                for conv in conversations[:10]:
+                    title = conv.get('title', 'New Chat')[:30]
+                    if len(conv.get('title', '')) > 30:
+                        title += "..."
+                    if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
+                        st.session_state.current_conversation = conv
+                        msgs = get_conversation_messages(supabase, conv['id'])
+                        st.session_state.messages = [
+                            {
+                                "role": m['role'],
+                                "content": m['content'],
+                                "raw_content": m['content'].split('\n\n', 1)[-1] if '\n\n' in m['content'] else m['content'],
+                                "agent": m.get('agent')
+                            }
+                            for m in msgs
+                        ]
+                        st.rerun()
             else:
                 st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
             

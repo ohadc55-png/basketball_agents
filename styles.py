@@ -397,6 +397,15 @@ CSS_TEMPLATE = """
         background-color: transparent !important;
     }
     
+    /* ===== SIDEBAR NAVIGATION BUTTONS ===== */
+    [data-testid="stSidebar"] .stButton > button {
+        font-size: 0.75rem !important;
+        padding: 0.5rem 0.3rem !important;
+        letter-spacing: 0.5px !important;
+        min-height: 45px !important;
+        white-space: nowrap !important;
+    }
+    
     /* ===== PREMIUM BUTTONS ===== */
     .stButton > button {
         font-family: 'Orbitron', monospace !important;

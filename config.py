@@ -47,6 +47,7 @@ class Agent(Enum):
     STRENGTH_COACH = "strength_coach"
     ANALYST = "analyst"
     YOUTH_COACH = "youth_coach"
+    TEAM_MANAGER = "team_manager"
 
 AGENT_INFO = {
     Agent.ASSISTANT_COACH: {
@@ -55,6 +56,13 @@ AGENT_INFO = {
         "title": "General Manager",
         "specialty": "Team Leadership & Strategy",
         "color": "#FF6B35"
+    },
+    Agent.TEAM_MANAGER: {
+        "name": "TEAM MANAGER",
+        "icon": "📋",
+        "title": "Logistics Coordinator",
+        "specialty": "Schedule, Players & Facilities",
+        "color": "#9B59B6"
     },
     Agent.TACTICIAN: {
         "name": "THE TACTICIAN",
@@ -112,9 +120,14 @@ AGENTS AVAILABLE:
 - STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
 - ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
 - YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development
-- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, scheduling, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts
+- TEAM_MANAGER: schedule, calendar, events, practices, games, facilities, venues, halls, players roster, parent contacts, phone numbers, logistics, transportation
+- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts
 
 IMPORTANT DISTINCTIONS:
+- "When is the next practice?" → TEAM_MANAGER
+- "What's the schedule this week?" → TEAM_MANAGER
+- "Give me the phone number of..." → TEAM_MANAGER
+- "Where do we play on Friday?" → TEAM_MANAGER
 - "How to run a practice" → ASSISTANT_COACH (not TACTICIAN)
 - "How to manage players" → ASSISTANT_COACH (not TACTICIAN)
 - "Team communication" → ASSISTANT_COACH
@@ -130,12 +143,13 @@ User's response: {question}
 ROUTING RULES:
 1. If the previous agent ASKED FOR INFORMATION and the user is PROVIDING that information → STAY with the SAME agent
 2. If the user mentions ages 5-12, kids, children, mini basketball → YOUTH_COACH
-3. If about team MANAGEMENT, PLANNING, COMMUNICATION, LEADERSHIP → ASSISTANT_COACH
-4. If about ON-COURT TACTICS, PLAYS, SCHEMES → TACTICIAN
-5. Numbers, measurements, statistics responses are ALWAYS continuations → STAY with same agent
-6. When in doubt → STAY with the same agent
+3. If about SCHEDULE, CALENDAR, FACILITIES, PLAYER CONTACTS, LOGISTICS → TEAM_MANAGER
+4. If about team MANAGEMENT, PLANNING, COMMUNICATION, LEADERSHIP → ASSISTANT_COACH
+5. If about ON-COURT TACTICS, PLAYS, SCHEMES → TACTICIAN
+6. Numbers, measurements, statistics responses are ALWAYS continuations → STAY with same agent
+7. When in doubt → STAY with the same agent
 
-Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
+Which agent should handle this? Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, TEAM_MANAGER, or ASSISTANT_COACH"""
 
 
 ROUTER_PROMPT_NO_CONTEXT = """Determine which coach should answer this basketball question.
@@ -147,9 +161,14 @@ AGENTS:
 - STRENGTH_COACH: gym, strength, weights, jumping, speed, agility, workout programs
 - ANALYST: statistics, data, numbers, turnovers, assists, percentages, efficiency, analytics
 - YOUTH_COACH: kids, children, young players, ages 5-12, mini basketball, youth development
-- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, scheduling, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts
+- TEAM_MANAGER: schedule, calendar, events, practices, games, facilities, venues, halls, players roster, parent contacts, phone numbers, logistics, transportation
+- ASSISTANT_COACH: team management, practice planning, communication, leadership, motivation, player relationships, parent communication, team culture, administrative tasks, season planning, tryouts, roster management, team rules, handling conflicts
 
 IMPORTANT DISTINCTIONS:
+- "When is the next practice?" → TEAM_MANAGER
+- "What's the schedule this week?" → TEAM_MANAGER
+- "Give me the phone number of..." → TEAM_MANAGER
+- "Where do we play on Friday?" → TEAM_MANAGER
 - "How to run a practice" → ASSISTANT_COACH (not TACTICIAN)
 - "How to manage players" → ASSISTANT_COACH (not TACTICIAN)
 - "Team communication" → ASSISTANT_COACH
@@ -160,4 +179,11 @@ IMPORTANT DISTINCTIONS:
 
 Question: {question}
 
-Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, or ASSISTANT_COACH"""
+Answer with ONE word: TACTICIAN, SKILLS_COACH, NUTRITIONIST, STRENGTH_COACH, ANALYST, YOUTH_COACH, TEAM_MANAGER, or ASSISTANT_COACH"""
+
+# ============================================================================
+# LOGISTICS SETTINGS
+# ============================================================================
+EVENT_TYPES = ["practice", "game", "tournament", "meeting", "other"]
+FACILITY_TYPES = ["gym", "outdoor", "fitness_room", "other"]
+PLAYER_POSITIONS = ["Guard", "Forward", "Center"]

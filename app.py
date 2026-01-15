@@ -21,6 +21,7 @@ from utils import (
     format_response, get_agent_from_value,
     read_uploaded_file, build_analysis_prompt
 )
+from logistics import render_logistics_page
 
 # Page config must be first
 st.set_page_config(
@@ -99,18 +100,41 @@ def render_sidebar(supabase):
         st.markdown(f'<div class="profile-card"><div style="font-weight:700; color:#FFFFFF; font-size:1.1rem;">{coach.get("name", "Coach")}</div><div style="color:#B0B0B0; font-size:0.9rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div></div>', unsafe_allow_html=True)
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # New Chat
-        if st.button("➕ NEW CHAT", use_container_width=True, key="new_chat_btn"):
-            st.session_state.current_conversation = None
-            st.session_state.messages = []
-            st.rerun()
+        # Navigation
+        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">🧭 NAVIGATION</div>', unsafe_allow_html=True)
+        
+        # Initialize current page
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 'chat'
+        
+        col_nav1, col_nav2 = st.columns(2)
+        with col_nav1:
+            if st.button("💬 CHAT", use_container_width=True, key="nav_chat",
+                        type="primary" if st.session_state.current_page == 'chat' else "secondary"):
+                st.session_state.current_page = 'chat'
+                st.rerun()
+        with col_nav2:
+            if st.button("📋 MANAGE", use_container_width=True, key="nav_logistics",
+                        type="primary" if st.session_state.current_page == 'logistics' else "secondary"):
+                st.session_state.current_page = 'logistics'
+                st.rerun()
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Chat History
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
-        
-        conversations = get_coach_conversations(supabase, coach.get('id'))
+        # Only show chat-related items when on chat page
+        if st.session_state.current_page == 'chat':
+            # New Chat
+            if st.button("➕ NEW CHAT", use_container_width=True, key="new_chat_btn"):
+                st.session_state.current_conversation = None
+                st.session_state.messages = []
+                st.rerun()
+            
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+            
+            # Chat History
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
+            
+            conversations = get_coach_conversations(supabase, coach.get('id'))
         if conversations:
             for conv in conversations[:10]:
                 title = conv.get('title', 'New Chat')[:30]
@@ -129,36 +153,36 @@ def render_sidebar(supabase):
                         for m in msgs
                     ]
                     st.rerun()
-        else:
-            st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
-        
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-        
-        # Coaching Staff - Using HTML cards instead of expanders
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
-        
-        for agent in Agent:
-            info = AGENT_INFO[agent]
-            st.markdown(f'''
-            <div class="agent-card" style="
-                background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(40,40,40,0.6));
-                border: 1px solid {info["color"]}40;
-                border-left: 4px solid {info["color"]};
-                border-radius: 10px;
-                padding: 0.8rem 1rem;
-                margin-bottom: 0.5rem;
-                transition: all 0.3s ease;
-                cursor: default;
-            ">
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span style="font-size:1.3rem;">{info["icon"]}</span>
-                    <div>
-                        <div style="font-family:'Rajdhani',sans-serif; font-weight:700; color:#FFFFFF; font-size:0.9rem;">{info["name"]}</div>
-                        <div style="color:{info["color"]}; font-size:0.75rem;">{info["specialty"]}</div>
+            else:
+                st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+            
+            # Coaching Staff - Using HTML cards instead of expanders
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
+            
+            for agent in Agent:
+                info = AGENT_INFO[agent]
+                st.markdown(f'''
+                <div class="agent-card" style="
+                    background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(40,40,40,0.6));
+                    border: 1px solid {info["color"]}40;
+                    border-left: 4px solid {info["color"]};
+                    border-radius: 10px;
+                    padding: 0.8rem 1rem;
+                    margin-bottom: 0.5rem;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:1.3rem;">{info["icon"]}</span>
+                        <div>
+                            <div style="font-family:'Rajdhani',sans-serif; font-weight:700; color:#FFFFFF; font-size:0.9rem;">{info["name"]}</div>
+                            <div style="color:{info["color"]}; font-size:0.75rem;">{info["specialty"]}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            ''', unsafe_allow_html=True)
+                ''', unsafe_allow_html=True)
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
@@ -395,7 +419,8 @@ def main():
         "messages": [],
         "current_conversation": None,
         "show_mobile_history": False,
-        "show_file_upload": False
+        "show_file_upload": False,
+        "current_page": "chat"
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -421,8 +446,14 @@ def main():
         render_sidebar(supabase)
         render_mobile_nav(supabase)
         render_header()
-        render_welcome()
-        render_chat(openai_client, supabase)
+        
+        # Page routing
+        if st.session_state.current_page == 'logistics':
+            coach = st.session_state.get('coach', {})
+            render_logistics_page(supabase, coach.get('id'))
+        else:
+            render_welcome()
+            render_chat(openai_client, supabase)
 
 
 if __name__ == "__main__":

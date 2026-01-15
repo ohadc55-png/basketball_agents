@@ -242,6 +242,8 @@ def route_question(question, client, chat_history=None):
             return Agent.ANALYST
         elif "YOUTH" in result:
             return Agent.YOUTH_COACH
+        elif "TEAM_MANAGER" in result or "MANAGER" in result:
+            return Agent.TEAM_MANAGER
         return Agent.ASSISTANT_COACH
     except Exception:
         return Agent.ASSISTANT_COACH
@@ -259,6 +261,11 @@ def get_agent_response(question, agent, chat_history, client, coach_profile=None
             knowledge = get_agent_knowledge(supabase, agent)
             if knowledge:
                 system_prompt += knowledge
+        
+        # Add logistics context for Team Manager
+        if agent == Agent.TEAM_MANAGER and supabase and coach_profile:
+            logistics_context = get_logistics_context(supabase, coach_profile.get('id'))
+            system_prompt += logistics_context
         
         messages = [{"role": "system", "content": system_prompt}]
         
@@ -375,3 +382,217 @@ def build_analysis_prompt(file_result, analysis_type):
             analysis_type=analysis_type,
             file_content=file_result["content"]
         )
+
+# ============================================================================
+# LOGISTICS - FACILITIES
+# ============================================================================
+def get_facilities(supabase, coach_id):
+    """Get all facilities for a coach"""
+    try:
+        result = supabase.table("facilities").select("*").eq("coach_id", coach_id).order("name").execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def get_facility_by_id(supabase, facility_id):
+    """Get a single facility by ID"""
+    try:
+        result = supabase.table("facilities").select("*").eq("id", facility_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def create_facility(supabase, coach_id, data):
+    """Create a new facility"""
+    try:
+        data["coach_id"] = coach_id
+        result = supabase.table("facilities").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def update_facility(supabase, facility_id, data):
+    """Update a facility"""
+    try:
+        result = supabase.table("facilities").update(data).eq("id", facility_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def delete_facility(supabase, facility_id):
+    """Delete a facility"""
+    try:
+        supabase.table("facilities").delete().eq("id", facility_id).execute()
+        return True
+    except Exception:
+        return False
+
+# ============================================================================
+# LOGISTICS - EVENTS
+# ============================================================================
+def get_events(supabase, coach_id, start_date=None, end_date=None):
+    """Get events for a coach, optionally filtered by date range"""
+    try:
+        query = supabase.table("events").select("*, facilities(name, address)").eq("coach_id", coach_id)
+        if start_date:
+            query = query.gte("event_date", start_date)
+        if end_date:
+            query = query.lte("event_date", end_date)
+        result = query.order("event_date").order("time_start").execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def get_events_for_month(supabase, coach_id, year, month):
+    """Get all events for a specific month"""
+    from datetime import date
+    import calendar
+    
+    first_day = date(year, month, 1)
+    last_day = date(year, month, calendar.monthrange(year, month)[1])
+    
+    return get_events(supabase, coach_id, first_day.isoformat(), last_day.isoformat())
+
+def get_event_by_id(supabase, event_id):
+    """Get a single event by ID"""
+    try:
+        result = supabase.table("events").select("*, facilities(name, address)").eq("id", event_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def create_event(supabase, coach_id, data):
+    """Create a new event"""
+    try:
+        data["coach_id"] = coach_id
+        result = supabase.table("events").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def update_event(supabase, event_id, data):
+    """Update an event"""
+    try:
+        result = supabase.table("events").update(data).eq("id", event_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def delete_event(supabase, event_id):
+    """Delete an event"""
+    try:
+        supabase.table("events").delete().eq("id", event_id).execute()
+        return True
+    except Exception:
+        return False
+
+# ============================================================================
+# LOGISTICS - PLAYERS
+# ============================================================================
+def get_players(supabase, coach_id, active_only=True):
+    """Get all players for a coach"""
+    try:
+        query = supabase.table("players").select("*").eq("coach_id", coach_id)
+        if active_only:
+            query = query.eq("is_active", True)
+        result = query.order("jersey_number").order("last_name").execute()
+        return result.data or []
+    except Exception:
+        return []
+
+def get_player_by_id(supabase, player_id):
+    """Get a single player by ID"""
+    try:
+        result = supabase.table("players").select("*").eq("id", player_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def create_player(supabase, coach_id, data):
+    """Create a new player"""
+    try:
+        data["coach_id"] = coach_id
+        result = supabase.table("players").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def update_player(supabase, player_id, data):
+    """Update a player"""
+    try:
+        result = supabase.table("players").update(data).eq("id", player_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
+
+def delete_player(supabase, player_id):
+    """Delete (deactivate) a player"""
+    try:
+        supabase.table("players").update({"is_active": False}).eq("id", player_id).execute()
+        return True
+    except Exception:
+        return False
+
+# ============================================================================
+# LOGISTICS - DATA FOR TEAM MANAGER AGENT
+# ============================================================================
+def get_logistics_context(supabase, coach_id):
+    """Get all logistics data formatted for the Team Manager agent"""
+    from datetime import date, timedelta
+    
+    # Get upcoming events (next 30 days)
+    today = date.today()
+    end_date = today + timedelta(days=30)
+    events = get_events(supabase, coach_id, today.isoformat(), end_date.isoformat())
+    
+    # Get all facilities
+    facilities = get_facilities(supabase, coach_id)
+    
+    # Get all active players
+    players = get_players(supabase, coach_id, active_only=True)
+    
+    # Format context
+    context = "\n\n=== TEAM LOGISTICS DATA ===\n"
+    
+    # Events
+    context += "\n📅 UPCOMING EVENTS (Next 30 days):\n"
+    if events:
+        for e in events:
+            facility_name = e.get('facilities', {}).get('name', 'TBD') if e.get('facilities') else 'TBD'
+            context += f"- {e['event_date']} | {e.get('time_start', 'TBD')} | {e['type'].upper()}: {e['title']}"
+            if e.get('opponent'):
+                context += f" vs {e['opponent']}"
+            context += f" @ {facility_name}\n"
+    else:
+        context += "No upcoming events scheduled.\n"
+    
+    # Facilities
+    context += "\n🏟️ FACILITIES:\n"
+    if facilities:
+        for f in facilities:
+            context += f"- {f['name']}"
+            if f.get('address'):
+                context += f" | {f['address']}"
+            if f.get('contact_phone'):
+                context += f" | Contact: {f.get('contact_name', 'N/A')} ({f['contact_phone']})"
+            context += "\n"
+    else:
+        context += "No facilities registered.\n"
+    
+    # Players
+    context += "\n👥 PLAYERS ROSTER:\n"
+    if players:
+        for p in players:
+            context += f"- #{p.get('jersey_number', 'N/A')} {p['first_name']} {p['last_name']}"
+            if p.get('position'):
+                context += f" ({p['position']})"
+            if p.get('parent1_name') and p.get('parent1_phone'):
+                context += f" | Parent: {p['parent1_name']} - {p['parent1_phone']}"
+            context += "\n"
+    else:
+        context += "No players registered.\n"
+    
+    context += "\n=== END LOGISTICS DATA ===\n"
+    
+    return context
+

@@ -776,8 +776,47 @@ CSS_TEMPLATE = """
     [data-baseweb="calendar"] *,
     [data-baseweb="datepicker"] *,
     [data-baseweb="calendar"] button,
-    [data-baseweb="calendar"] div {
+    [data-baseweb="calendar"] div,
+    [data-baseweb="calendar"] span {
         color: #FFFFFF !important;
+    }
+    
+    /* Calendar month/year dropdown selectors */
+    [data-baseweb="calendar"] [data-baseweb="select"] > div,
+    [data-baseweb="calendar"] select,
+    [data-baseweb="calendar"] [role="listbox"],
+    [data-baseweb="calendar"] [data-baseweb="popover"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Month/Year dropdown text */
+    [data-baseweb="calendar"] [data-baseweb="select"] span,
+    [data-baseweb="calendar"] [data-baseweb="select"] div,
+    [data-baseweb="calendar"] [aria-haspopup="listbox"] span {
+        color: #FFFFFF !important;
+        background: transparent !important;
+    }
+    
+    /* Calendar dropdown menu */
+    [data-baseweb="calendar"] [data-baseweb="menu"],
+    [data-baseweb="calendar"] ul[role="listbox"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    /* Calendar dropdown options */
+    [data-baseweb="calendar"] [data-baseweb="menu"] li,
+    [data-baseweb="calendar"] [role="option"] {
+        color: #FFFFFF !important;
+        background: transparent !important;
+    }
+    
+    [data-baseweb="calendar"] [data-baseweb="menu"] li:hover,
+    [data-baseweb="calendar"] [role="option"]:hover {
+        background: rgba(255, 107, 53, 0.2) !important;
     }
     
     /* Calendar selected date */
@@ -800,6 +839,12 @@ CSS_TEMPLATE = """
     /* Time picker dropdown */
     [data-baseweb="time-picker"],
     [data-baseweb="timepicker"] {
+        background: #1a1a1a !important;
+    }
+    
+    /* Time picker menu */
+    [data-baseweb="menu"][aria-label*="time"],
+    [data-baseweb="select"] [data-baseweb="menu"] {
         background: #1a1a1a !important;
     }
     

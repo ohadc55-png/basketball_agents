@@ -199,6 +199,13 @@ def render_event_form(supabase, coach_id, event_id=None):
     is_edit = event_id is not None
     event = get_event_by_id(supabase, event_id) if is_edit else {}
     
+    # Back button (outside form)
+    if st.button("⬅️ Back", key="back_from_event"):
+        st.session_state.adding_event = False
+        st.session_state.editing_event = None
+        st.session_state.show_day_events = False
+        st.rerun()
+    
     st.markdown(f'''
     <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1.2rem; margin-bottom:1rem;">
         {"✏️ EDIT EVENT" if is_edit else "➕ ADD NEW EVENT"}
@@ -212,7 +219,7 @@ def render_event_form(supabase, coach_id, event_id=None):
             index=EVENT_TYPES.index(event.get('type', 'practice')) if event.get('type') in EVENT_TYPES else 0
         )
         
-        title = st.text_input("Title", value=event.get('title', ''))
+        title = st.text_input("Title (optional)", value=event.get('title', ''))
         
         col1, col2 = st.columns(2)
         with col1:
@@ -283,10 +290,13 @@ def render_event_form(supabase, coach_id, event_id=None):
         with col_cancel:
             cancelled = st.form_submit_button("❌ Cancel", use_container_width=True)
         
-        if submitted and title:
+        if submitted:
+            # Auto-generate title if empty
+            final_title = title if title else f"{event_type.capitalize()}"
+            
             data = {
                 "type": event_type,
-                "title": title,
+                "title": final_title,
                 "event_date": event_date.isoformat(),
                 "time_start": time_start.strftime('%H:%M:%S'),
                 "time_end": time_end.strftime('%H:%M:%S'),
@@ -389,6 +399,18 @@ def render_facility_form(supabase, coach_id, facility_id=None):
     
     is_edit = facility_id is not None
     facility = get_facility_by_id(supabase, facility_id) if is_edit else {}
+    
+    # Back button (outside form)
+    if st.button("⬅️ Back", key="back_from_facility"):
+        st.session_state.adding_facility = False
+        st.session_state.editing_facility = None
+        st.rerun()
+    
+    st.markdown(f'''
+    <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1.2rem; margin-bottom:1rem;">
+        {"✏️ EDIT FACILITY" if is_edit else "➕ ADD NEW FACILITY"}
+    </div>
+    ''', unsafe_allow_html=True)
     
     with st.form(key="facility_form"):
         name = st.text_input("Facility Name *", value=facility.get('name', ''))
@@ -516,6 +538,18 @@ def render_player_form(supabase, coach_id, player_id=None):
     
     is_edit = player_id is not None
     player = get_player_by_id(supabase, player_id) if is_edit else {}
+    
+    # Back button (outside form)
+    if st.button("⬅️ Back", key="back_from_player"):
+        st.session_state.adding_player = False
+        st.session_state.editing_player = None
+        st.rerun()
+    
+    st.markdown(f'''
+    <div style="font-family:'Orbitron',monospace; color:#FF6B35; font-size:1.2rem; margin-bottom:1rem;">
+        {"✏️ EDIT PLAYER" if is_edit else "➕ ADD NEW PLAYER"}
+    </div>
+    ''', unsafe_allow_html=True)
     
     with st.form(key="player_form"):
         col1, col2 = st.columns(2)

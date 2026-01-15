@@ -44,6 +44,18 @@ def render_login_page(supabase):
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        # Hello Coach banner
+        st.markdown('''
+        <div style="background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,107,53,0.1));
+                    border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; 
+                    text-align: center; margin-bottom: 1.5rem;">
+            <span style="font-family: 'Orbitron', monospace; font-size: 1.5rem; 
+                        color: #FF6B35; letter-spacing: 3px;">
+                🏀 HELLO COACH 🏀
+            </span>
+        </div>
+        ''', unsafe_allow_html=True)
+        
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["🔐 LOGIN", "📝 REGISTER"])
         

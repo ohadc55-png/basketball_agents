@@ -629,9 +629,40 @@ CSS_TEMPLATE = """
         -webkit-text-fill-color: #FFFFFF !important;
     }
     
+    /* AUTOFILL FIX - When browser autofills, it adds white background */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active,
+    .stTextInput input:-webkit-autofill,
+    .stTextInput input:-webkit-autofill:hover,
+    .stTextInput input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 30px #1a1a1a inset !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        background-color: #1a1a1a !important;
+        caret-color: #FFFFFF !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+    }
+    
+    /* If background is forced white - make text black for readability */
+    .stTextInput input[style*="background: white"],
+    .stTextInput input[style*="background-color: white"],
+    .stTextInput input[style*="background: rgb(255"],
+    input[style*="background: white"],
+    input[style*="background-color: white"] {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+    
     /* Input containers */
     [data-baseweb="input"],
     [data-baseweb="base-input"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+    }
+    
+    [data-baseweb="input"] > div,
+    [data-baseweb="base-input"] > div {
         background: #1a1a1a !important;
         background-color: #1a1a1a !important;
     }
@@ -1221,4 +1252,4 @@ def get_custom_css():
     """Generate the custom CSS with background URL"""
     return CSS_TEMPLATE.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
-CUSTOM_CSS = get_custom_css()
+CUSTOM_CSS = get_custom_css()ד

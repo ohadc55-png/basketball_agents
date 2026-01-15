@@ -103,11 +103,11 @@ def render_calendar(supabase, coach_id):
                     # Event indicators
                     event_dots = ""
                     if day_events:
-                        for e in day_events[:3]:  # Show max 3 dots
+                        for e in day_events[:3]:  # Show max 3 indicators
                             if e['type'] == 'practice':
                                 event_dots += "🟢"
                             elif e['type'] == 'game':
-                                event_dots += "🔴"
+                                event_dots += "🏀"
                             else:
                                 event_dots += "🔵"
                     
@@ -128,7 +128,7 @@ def render_calendar(supabase, coach_id):
     # Legend
     st.markdown('''
     <div style="margin-top:1rem; padding:0.5rem; background:rgba(30,30,30,0.8); border-radius:10px;">
-        <span style="color:#888; font-size:0.85rem;">Legend: 🟢 Practice | 🔴 Game | 🔵 Other</span>
+        <span style="color:#888; font-size:0.85rem;">Legend: 🟢 Practice | 🏀 Game | 🔵 Other</span>
     </div>
     ''', unsafe_allow_html=True)
     

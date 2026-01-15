@@ -455,14 +455,29 @@ CSS_TEMPLATE = """
     /* Calendar day buttons - specific styling */
     .stButton > button[kind="secondary"],
     .main .stButton > button {
-        color: #FFFFFF !important;
-        background: rgba(30, 30, 30, 0.8) !important;
+        color: #000000 !important;
+        background: #FFFFFF !important;
         border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        -webkit-text-fill-color: #000000 !important;
     }
     
     .main .stButton > button:hover {
         color: #000000 !important;
         background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+    
+    /* Sidebar buttons - keep orange theme */
+    [data-testid="stSidebar"] .stButton > button {
+        color: #FF6B35 !important;
+        background: rgba(30, 30, 30, 0.8) !important;
+        -webkit-text-fill-color: #FF6B35 !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button:hover {
+        color: #000000 !important;
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        -webkit-text-fill-color: #000000 !important;
     }
     
     /* ===== PREMIUM RESPONSE BADGE ===== */
@@ -1252,4 +1267,4 @@ def get_custom_css():
     """Generate the custom CSS with background URL"""
     return CSS_TEMPLATE.replace('BACKGROUND_URL_PLACEHOLDER', BACKGROUND_URL)
 
-CUSTOM_CSS = get_custom_css()ד
+CUSTOM_CSS = get_custom_css()

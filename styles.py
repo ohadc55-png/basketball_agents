@@ -412,8 +412,8 @@ CSS_TEMPLATE = """
         font-weight: 600 !important;
         font-size: 0.85rem !important;
         background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 107, 53, 0.1)) !important;
-        color: var(--primary) !important;
-        border: 2px solid var(--primary) !important;
+        color: #FF6B35 !important;
+        border: 2px solid #FF6B35 !important;
         border-radius: var(--radius-xl) !important;
         padding: 0.6rem 1.5rem !important;
         text-transform: uppercase !important;
@@ -436,8 +436,8 @@ CSS_TEMPLATE = """
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
-        color: #000 !important;
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        color: #000000 !important;
         transform: translateY(-3px) !important;
         box-shadow: 
             0 8px 25px var(--shadow-glow),
@@ -450,6 +450,19 @@ CSS_TEMPLATE = """
     
     .stButton > button:active {
         transform: translateY(-1px) !important;
+    }
+    
+    /* Calendar day buttons - specific styling */
+    .stButton > button[kind="secondary"],
+    .main .stButton > button {
+        color: #FFFFFF !important;
+        background: rgba(30, 30, 30, 0.8) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    .main .stButton > button:hover {
+        color: #000000 !important;
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
     }
     
     /* ===== PREMIUM RESPONSE BADGE ===== */
@@ -587,37 +600,100 @@ CSS_TEMPLATE = """
         box-shadow: 0 5px 20px rgba(255, 107, 53, 0.2);
     }
     
-    /* ===== FORM INPUTS - DARK THEME ===== */
+    /* ===== FORM INPUTS - COMPREHENSIVE DARK THEME ===== */
+    
+    /* ALL Input types - base styling */
     .stTextInput input,
     .stNumberInput input,
     .stDateInput input,
     .stTimeInput input,
-    .stTextArea textarea {
-        background: rgba(30, 30, 30, 0.95) !important;
+    .stTextArea textarea,
+    [data-testid="stNumberInput"] input,
+    [data-testid="stTextInput"] input,
+    [data-baseweb="input"] input,
+    [data-baseweb="textarea"] textarea,
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    input[type="email"],
+    input[type="tel"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
         border: 1px solid rgba(255, 107, 53, 0.4) !important;
-        border-radius: var(--radius-md) !important;
+        border-radius: 10px !important;
         color: #FFFFFF !important;
         padding: 0.8rem 1rem !important;
         font-family: 'Inter', sans-serif !important;
-        transition: all var(--transition-normal) !important;
+        transition: all 0.3s ease !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }
     
+    /* Input containers */
+    [data-baseweb="input"],
+    [data-baseweb="base-input"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+    }
+    
+    /* Number input specific - the wrapper */
+    .stNumberInput > div > div {
+        background: #1a1a1a !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Number input buttons (+ and -) */
+    .stNumberInput button {
+        background: #2a2a2a !important;
+        color: #FF6B35 !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    .stNumberInput button:hover {
+        background: rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    /* Date and Time input containers */
+    .stDateInput > div > div,
+    .stTimeInput > div > div,
+    [data-testid="stDateInput"] > div > div,
+    [data-testid="stTimeInput"] > div > div {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+        border: 1px solid rgba(255, 107, 53, 0.4) !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Date/Time input text */
+    .stDateInput input,
+    .stTimeInput input,
+    [data-testid="stDateInput"] input,
+    [data-testid="stTimeInput"] input {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+    
+    /* Focus states */
     .stTextInput input:focus,
     .stNumberInput input:focus,
     .stDateInput input:focus,
     .stTimeInput input:focus,
-    .stTextArea textarea:focus {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 15px var(--shadow-glow) !important;
+    .stTextArea textarea:focus,
+    [data-baseweb="input"]:focus-within {
+        border-color: #FF6B35 !important;
+        box-shadow: 0 0 15px rgba(255, 107, 53, 0.3) !important;
         outline: none !important;
     }
     
+    /* Placeholder text */
     .stTextInput input::placeholder,
-    .stTextArea textarea::placeholder {
-        color: #888888 !important;
+    .stTextArea textarea::placeholder,
+    input::placeholder {
+        color: #666666 !important;
+        -webkit-text-fill-color: #666666 !important;
     }
     
-    /* Form Labels */
+    /* Form Labels - ALL types */
     .stTextInput label,
     .stNumberInput label,
     .stDateInput label,
@@ -625,65 +701,149 @@ CSS_TEMPLATE = """
     .stTextArea label,
     .stSelectbox label,
     .stCheckbox label,
-    .stRadio label {
+    .stRadio label,
+    .stMultiSelect label,
+    [data-testid="stWidgetLabel"] {
         color: #FFFFFF !important;
         font-family: 'Rajdhani', sans-serif !important;
         font-weight: 600 !important;
     }
     
-    /* Selectbox / Dropdown */
-    .stSelectbox > div > div {
-        background: rgba(30, 30, 30, 0.95) !important;
+    /* Selectbox / Dropdown - comprehensive */
+    .stSelectbox > div > div,
+    [data-testid="stSelectbox"] > div > div,
+    [data-baseweb="select"] > div {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
         border: 1px solid rgba(255, 107, 53, 0.4) !important;
-        border-radius: var(--radius-md) !important;
+        border-radius: 10px !important;
         color: #FFFFFF !important;
     }
     
-    .stSelectbox > div > div:hover {
-        border-color: var(--primary) !important;
+    /* Selected value in selectbox */
+    [data-baseweb="select"] span,
+    .stSelectbox [data-baseweb="select"] span {
+        color: #FFFFFF !important;
+    }
+    
+    .stSelectbox > div > div:hover,
+    [data-baseweb="select"] > div:hover {
+        border-color: #FF6B35 !important;
+    }
+    
+    /* Dropdown menu container */
+    [data-baseweb="menu"],
+    [data-baseweb="popover"] [data-baseweb="menu"],
+    [role="listbox"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
     }
     
     /* Dropdown menu items */
-    [data-baseweb="menu"] {
-        background: rgba(30, 30, 30, 0.98) !important;
-        border: 1px solid rgba(255, 107, 53, 0.3) !important;
-    }
-    
-    [data-baseweb="menu"] li {
+    [data-baseweb="menu"] li,
+    [data-baseweb="menu"] [role="option"],
+    [role="listbox"] [role="option"] {
         color: #FFFFFF !important;
+        background: transparent !important;
     }
     
-    [data-baseweb="menu"] li:hover {
+    [data-baseweb="menu"] li:hover,
+    [data-baseweb="menu"] [role="option"]:hover,
+    [role="listbox"] [role="option"]:hover {
         background: rgba(255, 107, 53, 0.2) !important;
     }
     
-    /* Date/Time picker popups */
+    /* Selected option in dropdown */
+    [data-baseweb="menu"] [aria-selected="true"],
+    [role="option"][aria-selected="true"] {
+        background: rgba(255, 107, 53, 0.3) !important;
+    }
+    
+    /* Date picker popup/calendar */
     [data-baseweb="calendar"],
     [data-baseweb="datepicker"],
-    [data-baseweb="popover"] > div {
-        background: rgba(30, 30, 30, 0.98) !important;
+    [data-baseweb="popover"] > div,
+    [data-baseweb="popover"] [data-baseweb="calendar"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
         border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Calendar text - all elements */
+    [data-baseweb="calendar"] *,
+    [data-baseweb="datepicker"] *,
+    [data-baseweb="calendar"] button,
+    [data-baseweb="calendar"] div {
         color: #FFFFFF !important;
     }
     
-    [data-baseweb="calendar"] * {
-        color: #FFFFFF !important;
-    }
-    
-    [data-baseweb="calendar"] [aria-selected="true"] {
-        background: var(--primary) !important;
+    /* Calendar selected date */
+    [data-baseweb="calendar"] [aria-selected="true"],
+    [data-baseweb="calendar"] [data-selected="true"] {
+        background: #FF6B35 !important;
         color: #000000 !important;
     }
     
+    /* Calendar hover */
+    [data-baseweb="calendar"] button:hover {
+        background: rgba(255, 107, 53, 0.2) !important;
+    }
+    
+    /* Calendar navigation arrows */
+    [data-baseweb="calendar"] [data-baseweb="button"] {
+        color: #FF6B35 !important;
+    }
+    
+    /* Time picker dropdown */
+    [data-baseweb="time-picker"],
+    [data-baseweb="timepicker"] {
+        background: #1a1a1a !important;
+    }
+    
     /* Checkbox styling */
-    .stCheckbox > label > span {
+    .stCheckbox > label > span,
+    .stCheckbox span {
         color: #FFFFFF !important;
     }
     
-    .stCheckbox [data-testid="stCheckbox"] {
-        background: rgba(30, 30, 30, 0.95) !important;
+    .stCheckbox [data-testid="stCheckbox"],
+    .stCheckbox > div {
+        background: transparent !important;
     }
     
+    /* Checkbox box itself */
+    [data-baseweb="checkbox"] {
+        background: #1a1a1a !important;
+        border-color: rgba(255, 107, 53, 0.4) !important;
+    }
+    
+    [data-baseweb="checkbox"]:hover {
+        border-color: #FF6B35 !important;
+    }
+    
+    /* Info/Warning/Success boxes text */
+    .stAlert, .stInfo, .stSuccess, .stWarning, .stError {
+        color: #FFFFFF !important;
+    }
+    
+    .stAlert p, .stInfo p, .stSuccess p, .stWarning p, .stError p {
+        color: #FFFFFF !important;
+    }
+    
+    /* Form submit buttons in forms */
+    [data-testid="stForm"] button[kind="primaryFormSubmit"],
+    [data-testid="stForm"] button[kind="secondaryFormSubmit"] {
+        color: #FF6B35 !important;
+    }
+    
+    [data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        color: #000000 !important;
+    }
+
     /* ===== TABS ===== */
     .stTabs [data-baseweb="tab-list"] {
         background: transparent !important;
@@ -841,6 +1001,105 @@ CSS_TEMPLATE = """
         min-height: 80px !important;
         white-space: pre-wrap !important;
         line-height: 1.4 !important;
+    }
+    
+    /* ===== GLOBAL TEXT COLOR OVERRIDES ===== */
+    /* Ensure all text is visible on dark backgrounds */
+    
+    /* All paragraph and span text */
+    .main p, .main span, .main div, .main label {
+        color: #FFFFFF !important;
+    }
+    
+    /* Exception: buttons on hover should have dark text */
+    .stButton > button:hover,
+    .stButton > button:hover span,
+    .stButton > button:hover p {
+        color: #000000 !important;
+    }
+    
+    /* Form element values */
+    input, textarea, select {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+    
+    /* Streamlit specific - value display */
+    [data-testid="stMarkdownContainer"] p {
+        color: #FFFFFF !important;
+    }
+    
+    /* Column content */
+    [data-testid="column"] p,
+    [data-testid="column"] span,
+    [data-testid="column"] div {
+        color: #FFFFFF !important;
+    }
+    
+    /* Metric values */
+    [data-testid="stMetricValue"] {
+        color: #FF6B35 !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #FFFFFF !important;
+    }
+    
+    /* Expander content */
+    [data-testid="stExpander"] p,
+    [data-testid="stExpander"] span {
+        color: #FFFFFF !important;
+    }
+    
+    /* Data editor / table */
+    [data-testid="stDataFrame"] * {
+        color: #FFFFFF !important;
+    }
+    
+    /* Caption text */
+    .stCaption, figcaption {
+        color: #B0B0B0 !important;
+    }
+    
+    /* Help text */
+    .stHelp, [data-testid="stHelp"] {
+        color: #888888 !important;
+    }
+    
+    /* Tooltip */
+    [data-testid="stTooltipContent"] {
+        background: #1a1a1a !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Empty state text */
+    .stEmpty, [data-testid="stEmpty"] {
+        color: #888888 !important;
+    }
+    
+    /* Code blocks */
+    code, pre {
+        background: rgba(30, 30, 30, 0.9) !important;
+        color: #FF6B35 !important;
+    }
+    
+    /* Markdown content */
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, 
+    .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+        color: #FF6B35 !important;
+    }
+    
+    .stMarkdown p, .stMarkdown li, .stMarkdown span {
+        color: #FFFFFF !important;
+    }
+    
+    .stMarkdown a {
+        color: #00D4FF !important;
+    }
+    
+    /* Horizontal rule */
+    .stMarkdown hr {
+        border-color: rgba(255, 107, 53, 0.3) !important;
     }
 </style>
 """

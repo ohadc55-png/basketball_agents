@@ -10,7 +10,7 @@ from enum import Enum
 # APP SETTINGS
 # ============================================================================
 APP_TITLE = "HOOPS AI - Your Personal Assistant Coach"
-APP_ICON = "favicon.png"
+APP_ICON = "https://i.postimg.cc/WpnXDQym/LOGO-HOOPS-AI.png"
 
 # ============================================================================
 # URLS

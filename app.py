@@ -104,7 +104,7 @@ def render_sidebar(supabase):
     
     with st.sidebar:
         # Logo
-        st.markdown(f'<div style="text-align:center; padding:1rem 0;"><img src="{LOGO_URL}" style="width:150px; border-radius:10px;"></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align:center; padding:1rem 0;"><img src="{LOGO_URL}" style="width:220px; border-radius:10px;"></div>', unsafe_allow_html=True)
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         # Profile

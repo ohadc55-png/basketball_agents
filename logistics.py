@@ -71,148 +71,60 @@ def render_calendar(supabase, coach_id):
     cal = calendar.Calendar(firstweekday=6)  # Start with Sunday
     month_days = cal.monthdayscalendar(current_date.year, current_date.month)
     
-    # Inject calendar CSS once
-    st.markdown('''
-    <style>
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .calendar-header {
-            text-align: center;
-            font-weight: 700;
-            color: #FF6B35;
-            padding: 10px 5px;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-        }
-        .calendar-day {
-            background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
-            border: 1px solid rgba(255, 107, 53, 0.2);
-            border-radius: 12px;
-            padding: 12px 8px;
-            text-align: center;
-            min-height: 75px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .calendar-day:hover {
-            border-color: #FF6B35;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.3);
-        }
-        .calendar-day.today {
-            background: linear-gradient(145deg, #FF6B35, #FF8C42);
-            border: 2px solid #FF6B35;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-        }
-        .calendar-day.empty {
-            background: transparent;
-            border: none;
-            cursor: default;
-        }
-        .calendar-day.empty:hover {
-            transform: none;
-            box-shadow: none;
-        }
-        .day-number {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #FFFFFF;
-            margin-bottom: 5px;
-        }
-        .calendar-day.today .day-number {
-            color: #000000;
-        }
-        .day-events {
-            font-size: 1rem;
-            line-height: 1.2;
-        }
-    </style>
-    ''', unsafe_allow_html=True)
-    
-    # Build calendar HTML
-    calendar_html = '<div class="calendar-grid">'
-    
     # Day headers
-    for day_name in ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']:
-        calendar_html += f'<div class="calendar-header">{day_name}</div>'
+    header_cols = st.columns(7)
+    day_names = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+    for i, day_name in enumerate(day_names):
+        with header_cols[i]:
+            st.markdown(f'<div style="text-align:center; font-weight:bold; color:#FF6B35; padding:8px; font-size:0.9rem;">{day_name}</div>', unsafe_allow_html=True)
     
-    # Calendar days
+    # Calendar weeks
     for week in month_days:
-        for day in week:
-            if day == 0:
-                calendar_html += '<div class="calendar-day empty"></div>'
-            else:
-                day_str = f"{current_date.year}-{current_date.month:02d}-{day:02d}"
-                day_events = events_by_date.get(day_str, [])
-                
-                # Check if today
-                is_today = (day == date.today().day and 
-                           current_date.month == date.today().month and 
-                           current_date.year == date.today().year)
-                
-                # Event indicators
-                event_icons = ""
-                if day_events:
-                    for e in day_events[:3]:
-                        if e['type'] == 'practice':
-                            event_icons += "🟢"
-                        elif e['type'] == 'game':
-                            event_icons += "🏀"
-                        else:
-                            event_icons += "🔵"
-                
-                day_class = "calendar-day today" if is_today else "calendar-day"
-                calendar_html += f'''
-                <div class="{day_class}" data-date="{day_str}">
-                    <div class="day-number">{day}</div>
-                    <div class="day-events">{event_icons}</div>
-                </div>
-                '''
-    
-    calendar_html += '</div>'
-    st.markdown(calendar_html, unsafe_allow_html=True)
-    
-    # Day selection using selectbox (cleaner approach)
-    st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        # Get list of days with events for quick access
-        days_with_events = [d for d in events_by_date.keys() if d.startswith(f"{current_date.year}-{current_date.month:02d}")]
-        
-        all_days = []
-        for week in month_days:
-            for day in week:
-                if day != 0:
+        cols = st.columns(7)
+        for i, day in enumerate(week):
+            with cols[i]:
+                if day == 0:
+                    st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
+                else:
                     day_str = f"{current_date.year}-{current_date.month:02d}-{day:02d}"
-                    event_count = len(events_by_date.get(day_str, []))
-                    label = f"📅 {day}" + (f" ({event_count} events)" if event_count > 0 else "")
-                    all_days.append((day_str, label))
-        
-        selected = st.selectbox(
-            "Select a day to view/add events:",
-            options=[d[0] for d in all_days],
-            format_func=lambda x: next((d[1] for d in all_days if d[0] == x), x),
-            key="day_selector"
-        )
-        
-        if st.button("📋 View Day", use_container_width=True, key="view_day_btn"):
-            st.session_state.selected_date = selected
-            st.session_state.show_day_events = True
-            st.rerun()
+                    day_events = events_by_date.get(day_str, [])
+                    
+                    # Check if today
+                    is_today = (day == date.today().day and 
+                               current_date.month == date.today().month and 
+                               current_date.year == date.today().year)
+                    
+                    # Event indicators
+                    event_icons = ""
+                    if day_events:
+                        for e in day_events[:3]:
+                            if e['type'] == 'practice':
+                                event_icons += "🟢"
+                            elif e['type'] == 'game':
+                                event_icons += "🏀"
+                            else:
+                                event_icons += "🔵"
+                    
+                    # Button label
+                    btn_label = f"{day}"
+                    if event_icons:
+                        btn_label = f"{day}\n{event_icons}"
+                    
+                    # Use type parameter for styling
+                    btn_type = "primary" if is_today else "secondary"
+                    
+                    if st.button(btn_label, key=f"day_{day_str}", use_container_width=True, type=btn_type):
+                        st.session_state.selected_date = day_str
+                        st.session_state.show_day_events = True
+                        st.rerun()
     
     # Legend
     st.markdown('''
-    <div style="margin-top: 1.5rem; padding: 12px 15px; background: linear-gradient(145deg, #1a1a1a, #222); 
-                border-radius: 10px; border: 1px solid rgba(255,107,53,0.2);">
-        <span style="color: #888; font-size: 0.9rem;">
-            <strong style="color: #FF6B35;">Legend:</strong>&nbsp;&nbsp;
-            🟢 Practice &nbsp;|&nbsp; 🏀 Game &nbsp;|&nbsp; 🔵 Other
-        </span>
+    <div style="margin-top:1rem; padding:0.75rem; background:rgba(30,30,30,0.9); border-radius:10px; border:1px solid rgba(255,107,53,0.2);">
+        <span style="color:#FF6B35; font-weight:600;">Legend:</span>
+        <span style="color:#ccc; margin-left:10px;">🟢 Practice</span>
+        <span style="color:#ccc; margin-left:15px;">🏀 Game</span>
+        <span style="color:#ccc; margin-left:15px;">🔵 Other</span>
     </div>
     ''', unsafe_allow_html=True)
     

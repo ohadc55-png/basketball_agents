@@ -452,19 +452,49 @@ CSS_TEMPLATE = """
         transform: translateY(-1px) !important;
     }
     
-    /* Calendar day buttons - specific styling */
-    .stButton > button[kind="secondary"],
-    .main .stButton > button {
-        color: #000000 !important;
-        background: #FFFFFF !important;
+    /* ===== CALENDAR DAY BUTTONS - SECONDARY TYPE ===== */
+    /* Secondary buttons (calendar days) - dark background, white text */
+    .stButton > button[kind="secondary"] {
+        background: linear-gradient(145deg, #1e1e1e, #2d2d2d) !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
         border: 1px solid rgba(255, 107, 53, 0.3) !important;
-        -webkit-text-fill-color: #000000 !important;
+        border-radius: 12px !important;
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        min-height: 70px !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
     }
     
-    .main .stButton > button:hover {
+    .stButton > button[kind="secondary"]:hover {
+        background: linear-gradient(145deg, #FF6B35, #FF8C42) !important;
         color: #000000 !important;
-        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
         -webkit-text-fill-color: #000000 !important;
+        border-color: #FF6B35 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4) !important;
+    }
+    
+    /* Primary buttons (today) - orange background, black text */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(145deg, #FF6B35, #FF8C42) !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        border: 2px solid #FF6B35 !important;
+        border-radius: 12px !important;
+        font-size: 1.1rem !important;
+        font-weight: 800 !important;
+        min-height: 70px !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5) !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(145deg, #FF8C42, #FFA500) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6) !important;
     }
     
     /* Sidebar buttons - keep orange theme */
@@ -472,6 +502,10 @@ CSS_TEMPLATE = """
         color: #FF6B35 !important;
         background: rgba(30, 30, 30, 0.8) !important;
         -webkit-text-fill-color: #FF6B35 !important;
+        min-height: auto !important;
+        font-size: 0.85rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.5px !important;
     }
     
     [data-testid="stSidebar"] .stButton > button:hover {

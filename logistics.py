@@ -84,19 +84,15 @@ def render_calendar(supabase, coach_id):
     </div>
     ''', unsafe_allow_html=True)
     
-    # Build list of valid days for selection
-    valid_days = []
-    
-    # Calendar weeks
+    # Calendar weeks using native Streamlit buttons with forced styling
     for week in month_days:
         cols = st.columns(7)
         for i, day in enumerate(week):
             with cols[i]:
                 if day == 0:
-                    st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
+                    st.markdown('<div style="height:65px;"></div>', unsafe_allow_html=True)
                 else:
                     day_str = f"{current_date.year}-{current_date.month:02d}-{day:02d}"
-                    valid_days.append(day_str)
                     day_events = events_by_date.get(day_str, [])
                     
                     # Check if today
@@ -107,7 +103,7 @@ def render_calendar(supabase, coach_id):
                     # Event indicators
                     event_icons = ""
                     if day_events:
-                        for e in day_events[:3]:  # Show max 3 indicators
+                        for e in day_events[:3]:
                             if e['type'] == 'practice':
                                 event_icons += "🟢"
                             elif e['type'] == 'game':
@@ -115,52 +111,50 @@ def render_calendar(supabase, coach_id):
                             else:
                                 event_icons += "🔵"
                     
-                    # Style based on today or not
+                    # Build display text
+                    display_text = f"**{day}**" if not event_icons else f"**{day}**\n{event_icons}"
+                    
+                    # Style for today vs regular day
                     if is_today:
-                        bg_style = "background: linear-gradient(135deg, #FF6B35, #FF8C42);"
-                        text_color = "#000000"
-                        border_style = "border: 2px solid #FF6B35;"
+                        container_style = "background: linear-gradient(135deg, #FF6B35, #FF8C42); border: 2px solid #FF6B35; border-radius: 10px; padding: 8px; text-align: center; min-height: 65px; cursor: pointer;"
+                        text_style = "color: #000000; font-size: 1.1rem; font-weight: 800;"
                     else:
-                        bg_style = "background: rgba(40, 40, 40, 0.9);"
-                        text_color = "#FFFFFF"
-                        border_style = "border: 1px solid rgba(255, 107, 53, 0.3);"
+                        container_style = "background: #2a2a2a; border: 1px solid rgba(255,107,53,0.3); border-radius: 10px; padding: 8px; text-align: center; min-height: 65px; cursor: pointer;"
+                        text_style = "color: #FFFFFF; font-size: 1.1rem; font-weight: 700;"
                     
-                    # Create clickable day cell using button with custom style
-                    button_label = f"{day}"
-                    if event_icons:
-                        button_label = f"{day}\n{event_icons}"
-                    
-                    # Use custom HTML + hidden button trick
+                    # Create clickable HTML div + hidden button
                     st.markdown(f'''
-                    <style>
-                        div[data-testid="column"]:has(button[key="day_{day_str}"]) button {{
-                            {bg_style}
-                            {border_style}
-                            color: {text_color} !important;
-                            -webkit-text-fill-color: {text_color} !important;
-                            font-weight: 700 !important;
-                            font-size: 1rem !important;
-                            min-height: 70px !important;
-                            border-radius: 10px !important;
-                        }}
-                        div[data-testid="column"]:has(button[key="day_{day_str}"]) button:hover {{
-                            background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
-                            color: #000000 !important;
-                            -webkit-text-fill-color: #000000 !important;
-                            transform: scale(1.05);
-                        }}
-                    </style>
+                    <div style="{container_style}" onclick="document.querySelector('[data-testid=\\'stButton\\'] button[kind=\\'secondary\\']').click()">
+                        <div style="{text_style}">{day}</div>
+                        <div style="font-size: 0.9rem; margin-top: 2px;">{event_icons}</div>
+                    </div>
                     ''', unsafe_allow_html=True)
                     
-                    if st.button(
-                        button_label,
-                        key=f"day_{day_str}",
-                        use_container_width=True,
-                        help=f"{len(day_events)} events" if day_events else "No events"
-                    ):
+                    # Hidden button for click handling
+                    if st.button("select", key=f"day_{day_str}", help=f"{len(day_events)} events", use_container_width=True):
                         st.session_state.selected_date = day_str
                         st.session_state.show_day_events = True
                         st.rerun()
+    
+    # Hide the ugly buttons with CSS
+    st.markdown('''
+    <style>
+        /* Hide the select buttons but keep them clickable */
+        .main [data-testid="stButton"] button[kind="secondary"] {
+            position: absolute !important;
+            opacity: 0 !important;
+            height: 65px !important;
+            width: 100% !important;
+            top: 0 !important;
+            left: 0 !important;
+            cursor: pointer !important;
+            z-index: 10 !important;
+        }
+        .main [data-testid="column"] {
+            position: relative !important;
+        }
+    </style>
+    ''', unsafe_allow_html=True)
     
     # Legend
     st.markdown('''

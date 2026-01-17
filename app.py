@@ -22,6 +22,7 @@ from utils import (
     read_uploaded_file, build_analysis_prompt
 )
 from logistics import render_logistics_page
+from analytics_viz import display_analytics, extract_stats_from_text
 
 # Page config must be first
 st.set_page_config(
@@ -349,6 +350,12 @@ def render_chat(client, supabase):
                 )
                 formatted = format_response(raw_response, agent)
             st.markdown(formatted, unsafe_allow_html=True)
+            
+            # If ANALYST and user provided stats, show visualizations
+            if agent == Agent.ANALYST:
+                stats = extract_stats_from_text(prompt)
+                if stats:
+                    display_analytics(prompt)
         
         # Save response
         if st.session_state.current_conversation:

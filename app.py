@@ -150,110 +150,66 @@ def render_sidebar(supabase):
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
             # ===== QUICK IDEAS SECTION =====
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.8rem; margin-bottom:0.5rem; letter-spacing:2px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
             
-            # Offense
-            with st.expander("Offense", expanded=False):
-                st.markdown("🏀", unsafe_allow_html=True)
-                if st.button("Motion offense basics", key="qi_offense_1", use_container_width=True):
-                    st.session_state.pending_prompt = "Explain motion offense basics and give me 3 simple actions to start with."
-                    st.rerun()
-                if st.button("Pick & Roll variations", key="qi_offense_2", use_container_width=True):
-                    st.session_state.pending_prompt = "Show me different pick and roll variations and when to use each one."
-                    st.rerun()
-                if st.button("Beat 2-3 zone", key="qi_offense_3", use_container_width=True):
-                    st.session_state.pending_prompt = "How should we attack a 2-3 zone defense? Give me specific actions and player movements."
-                    st.rerun()
-                if st.button("End of game plays", key="qi_offense_4", use_container_width=True):
-                    st.session_state.pending_prompt = "Give me 3 effective end-of-game plays for different situations (need 3, need 2, etc)."
-                    st.rerun()
+            # Category selector
+            qi_categories = {
+                "Select category...": [],
+                "🏀 Offense": [
+                    ("Motion offense basics", "Explain motion offense basics and give me 3 simple actions to start with."),
+                    ("Pick & Roll variations", "Show me different pick and roll variations and when to use each one."),
+                    ("Beat 2-3 zone", "How should we attack a 2-3 zone defense? Give me specific actions and player movements."),
+                    ("End of game plays", "Give me 3 effective end-of-game plays for different situations (need 3, need 2, etc).")
+                ],
+                "🛡️ Defense": [
+                    ("Man-to-man principles", "What are the key principles of man-to-man defense I should teach my team?"),
+                    ("Zone defense setup", "How do I set up a 2-3 zone defense? Explain rotations and responsibilities."),
+                    ("Press break strategies", "How do we break full-court press? Give me formation and movement options."),
+                    ("Defending pick & roll", "What are the different ways to defend pick and roll? When should I use each?")
+                ],
+                "💪 Fitness": [
+                    ("Pre-game warmup", "Create a 15-minute pre-game warmup routine for my team."),
+                    ("Weekly strength program", "Design a weekly strength and conditioning program for basketball players."),
+                    ("Injury prevention", "What exercises should we do to prevent common basketball injuries?"),
+                    ("In-season conditioning", "How do I maintain fitness during the season without overtraining?")
+                ],
+                "🧠 Mental": [
+                    ("Pre-game team talk", "Help me structure an effective pre-game team talk."),
+                    ("Building confidence", "How do I build confidence in a player who is struggling?"),
+                    ("Handling pressure", "How do I teach my players to perform better under pressure?"),
+                    ("Team chemistry", "What activities and approaches help build team chemistry?")
+                ],
+                "📊 Analytics": [
+                    ("Analyze player stats", "I want to analyze a player's performance. What statistics should I provide you?"),
+                    ("Team performance review", "Help me do a team performance review. What data do you need from me?"),
+                    ("Key metrics explained", "Explain the most important basketball analytics metrics I should track.")
+                ],
+                "👶 Youth (5-12)": [
+                    ("Fun drills for kids", "Give me fun and engaging basketball games and drills for kids ages 6-10."),
+                    ("Teaching fundamentals", "How do I teach basketball fundamentals to young kids in a fun way?"),
+                    ("Age-appropriate plays", "What simple plays work best for youth basketball teams?")
+                ],
+                "🍎 Nutrition": [
+                    ("Build meal plan", "I want to create a nutrition plan for my player. Please ask me the relevant questions to build a personalized meal plan."),
+                    ("Game day nutrition", "What should players eat before, during, and after games?"),
+                    ("Hydration guide", "Create a hydration guide for basketball players during practice and games.")
+                ]
+            }
             
-            # Defense
-            with st.expander("Defense", expanded=False):
-                st.markdown("🛡️", unsafe_allow_html=True)
-                if st.button("Man-to-man principles", key="qi_defense_1", use_container_width=True):
-                    st.session_state.pending_prompt = "What are the key principles of man-to-man defense I should teach my team?"
-                    st.rerun()
-                if st.button("Zone defense setup", key="qi_defense_2", use_container_width=True):
-                    st.session_state.pending_prompt = "How do I set up a 2-3 zone defense? Explain rotations and responsibilities."
-                    st.rerun()
-                if st.button("Press break strategies", key="qi_defense_3", use_container_width=True):
-                    st.session_state.pending_prompt = "How do we break full-court press? Give me formation and movement options."
-                    st.rerun()
-                if st.button("Defending pick & roll", key="qi_defense_4", use_container_width=True):
-                    st.session_state.pending_prompt = "What are the different ways to defend pick and roll? When should I use each?"
-                    st.rerun()
+            selected_category = st.selectbox(
+                "Choose a topic:",
+                options=list(qi_categories.keys()),
+                key="qi_category_select",
+                label_visibility="collapsed"
+            )
             
-            # Fitness
-            with st.expander("Fitness", expanded=False):
-                st.markdown("💪", unsafe_allow_html=True)
-                if st.button("Pre-game warmup", key="qi_fitness_1", use_container_width=True):
-                    st.session_state.pending_prompt = "Create a 15-minute pre-game warmup routine for my team."
-                    st.rerun()
-                if st.button("Weekly strength program", key="qi_fitness_2", use_container_width=True):
-                    st.session_state.pending_prompt = "Design a weekly strength and conditioning program for basketball players."
-                    st.rerun()
-                if st.button("Injury prevention", key="qi_fitness_3", use_container_width=True):
-                    st.session_state.pending_prompt = "What exercises should we do to prevent common basketball injuries?"
-                    st.rerun()
-                if st.button("In-season conditioning", key="qi_fitness_4", use_container_width=True):
-                    st.session_state.pending_prompt = "How do I maintain fitness during the season without overtraining?"
-                    st.rerun()
-            
-            # Mental
-            with st.expander("Mental", expanded=False):
-                st.markdown("🧠", unsafe_allow_html=True)
-                if st.button("Pre-game team talk", key="qi_mental_1", use_container_width=True):
-                    st.session_state.pending_prompt = "Help me structure an effective pre-game team talk."
-                    st.rerun()
-                if st.button("Building confidence", key="qi_mental_2", use_container_width=True):
-                    st.session_state.pending_prompt = "How do I build confidence in a player who is struggling?"
-                    st.rerun()
-                if st.button("Handling pressure", key="qi_mental_3", use_container_width=True):
-                    st.session_state.pending_prompt = "How do I teach my players to perform better under pressure?"
-                    st.rerun()
-                if st.button("Team chemistry", key="qi_mental_4", use_container_width=True):
-                    st.session_state.pending_prompt = "What activities and approaches help build team chemistry?"
-                    st.rerun()
-            
-            # Analytics
-            with st.expander("Analytics", expanded=False):
-                st.markdown("📊", unsafe_allow_html=True)
-                if st.button("Analyze player stats", key="qi_analytics_1", use_container_width=True):
-                    st.session_state.pending_prompt = "I want to analyze a player's performance. What statistics should I provide you?"
-                    st.rerun()
-                if st.button("Team performance review", key="qi_analytics_2", use_container_width=True):
-                    st.session_state.pending_prompt = "Help me do a team performance review. What data do you need from me?"
-                    st.rerun()
-                if st.button("Key metrics explained", key="qi_analytics_3", use_container_width=True):
-                    st.session_state.pending_prompt = "Explain the most important basketball analytics metrics I should track."
-                    st.rerun()
-            
-            # Youth
-            with st.expander("Youth (5-12)", expanded=False):
-                st.markdown("👶", unsafe_allow_html=True)
-                if st.button("Fun drills for kids", key="qi_youth_1", use_container_width=True):
-                    st.session_state.pending_prompt = "Give me fun and engaging basketball games and drills for kids ages 6-10."
-                    st.rerun()
-                if st.button("Teaching fundamentals", key="qi_youth_2", use_container_width=True):
-                    st.session_state.pending_prompt = "How do I teach basketball fundamentals to young kids in a fun way?"
-                    st.rerun()
-                if st.button("Age-appropriate plays", key="qi_youth_3", use_container_width=True):
-                    st.session_state.pending_prompt = "What simple plays work best for youth basketball teams?"
-                    st.rerun()
-            
-            # Nutrition - Last as requested
-            with st.expander("Nutrition", expanded=False):
-                st.markdown("🍎", unsafe_allow_html=True)
-                if st.button("Build meal plan", key="qi_nutrition_1", use_container_width=True):
-                    st.session_state.pending_prompt = "I want to create a nutrition plan for my player. Please ask me the relevant questions to build a personalized meal plan."
-                    st.rerun()
-                if st.button("Game day nutrition", key="qi_nutrition_2", use_container_width=True):
-                    st.session_state.pending_prompt = "What should players eat before, during, and after games?"
-                    st.rerun()
-                if st.button("Hydration guide", key="qi_nutrition_3", use_container_width=True):
-                    st.session_state.pending_prompt = "Create a hydration guide for basketball players during practice and games."
-                    st.rerun()
+            # Show buttons for selected category
+            if selected_category and selected_category != "Select category...":
+                prompts = qi_categories[selected_category]
+                for i, (label, prompt) in enumerate(prompts):
+                    if st.button(f"▸ {label}", key=f"qi_btn_{selected_category}_{i}", use_container_width=True):
+                        st.session_state.pending_prompt = prompt
+                        st.rerun()
             
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
@@ -479,23 +435,35 @@ def render_chat(client, supabase):
 
 
 def render_mobile_nav(supabase):
-    """Render mobile-only navigation buttons (hidden on desktop via CSS)"""
-    # Add CSS to hide on desktop
+    """Render mobile-only navigation - completely hidden on desktop"""
+    
+    # Inject CSS to hide this entire section on desktop
     st.markdown('''
     <style>
-        /* Hide mobile nav on desktop */
-        @media (min-width: 769px) {
-            [data-testid="stVerticalBlock"]:has(> [data-testid="stHorizontalBlock"] button[key*="mobile"]),
-            .mobile-only-nav {
+        /* Aggressive hide for mobile nav on desktop */
+        @media screen and (min-width: 768px) {
+            section[data-testid="stSidebar"] ~ div div.mobile-nav-wrapper,
+            .mobile-nav-wrapper,
+            div:has(> .mobile-nav-wrapper) {
                 display: none !important;
-                visibility: hidden !important;
-                height: 0 !important;
+                max-height: 0 !important;
                 overflow: hidden !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+        }
+        
+        /* Show on mobile */
+        @media screen and (max-width: 767px) {
+            .mobile-nav-wrapper {
+                display: block !important;
             }
         }
     </style>
-    <div class="mobile-only-nav">
     ''', unsafe_allow_html=True)
+    
+    # Wrap everything in a div that we can hide
+    st.markdown('<div class="mobile-nav-wrapper">', unsafe_allow_html=True)
     
     coach = st.session_state.get('coach', {})
     
@@ -522,11 +490,9 @@ def render_mobile_nav(supabase):
             st.session_state.show_mobile_history = False
             st.rerun()
     
-    st.markdown('</div>', unsafe_allow_html=True)
-    
     # Mobile history panel
     if st.session_state.get('show_mobile_history', False):
-        st.markdown('<div class="mobile-only-nav" style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;"><div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
+        st.markdown('<div style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;"><div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
         
         conversations = get_coach_conversations(supabase, coach.get('id'))
         

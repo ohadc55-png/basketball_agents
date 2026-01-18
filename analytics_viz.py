@@ -329,45 +329,71 @@ def create_trend_chart(games_data, metric_name="Points"):
     if not games_data or len(games_data) < 2:
         return None
     
-    df = pd.DataFrame(games_data)
-    
-    # Determine x and y columns
-    x_col = 'game' if 'game' in df.columns else df.columns[0]
-    y_col = next((c for c in df.columns if c != x_col), df.columns[1] if len(df.columns) > 1 else df.columns[0])
-    
-    # Calculate average
-    avg = df[y_col].mean()
-    
-    fig = go.Figure()
-    
-    # Main line
-    fig.add_trace(go.Scatter(
-        x=df[x_col],
-        y=df[y_col],
-        mode='lines+markers',
-        name=metric_name,
-        line=dict(color=COLORS['primary'], width=3),
-        marker=dict(size=10, color=COLORS['primary'], line=dict(color=COLORS['text'], width=2))
-    ))
-    
-    # Average line
-    fig.add_trace(go.Scatter(
-        x=df[x_col],
-        y=[avg] * len(df),
-        mode='lines',
-        name=f'Average ({avg:.1f})',
-        line=dict(color=COLORS['secondary'], width=2, dash='dash')
-    ))
-    
-    fig.update_layout(
-        title=f"📈 Performance Trend - {metric_name}",
-        xaxis_title="Game",
-        yaxis_title=metric_name,
-        **CHART_TEMPLATE['layout'],
-        height=400
-    )
-    
-    return fig
+    try:
+        df = pd.DataFrame(games_data)
+        
+        if df.empty or len(df.columns) == 0:
+            return None
+        
+        # Determine x and y columns
+        if 'game' in df.columns:
+            x_col = 'game'
+        else:
+            x_col = df.columns[0]
+        
+        # Find y column (first numeric column that's not x_col)
+        y_col = None
+        for col in df.columns:
+            if col != x_col:
+                y_col = col
+                break
+        
+        if y_col is None:
+            y_col = x_col  # Fallback
+        
+        # Ensure numeric values
+        df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
+        df = df.dropna(subset=[y_col])
+        
+        if df.empty:
+            return None
+        
+        # Calculate average
+        avg = df[y_col].mean()
+        
+        fig = go.Figure()
+        
+        # Main line
+        fig.add_trace(go.Scatter(
+            x=df[x_col],
+            y=df[y_col],
+            mode='lines+markers',
+            name=metric_name,
+            line=dict(color=COLORS['primary'], width=3),
+            marker=dict(size=10, color=COLORS['primary'], line=dict(color=COLORS['text'], width=2))
+        ))
+        
+        # Average line
+        fig.add_trace(go.Scatter(
+            x=df[x_col],
+            y=[avg] * len(df),
+            mode='lines',
+            name=f'Average ({avg:.1f})',
+            line=dict(color=COLORS['secondary'], width=2, dash='dash')
+        ))
+        
+        fig.update_layout(
+            title=f"📈 Performance Trend - {metric_name}",
+            xaxis_title="Game",
+            yaxis_title=metric_name,
+            **CHART_TEMPLATE['layout'],
+            height=400
+        )
+        
+        return fig
+    except Exception as e:
+        print(f"Error creating trend chart: {e}")
+        return None
 
 
 def create_efficiency_gauge(value, title="Efficiency", min_val=0, max_val=100):
@@ -471,58 +497,78 @@ def analyze_and_visualize(text, context=""):
     charts = []
     insights = []
     
-    # Extract stats from text
-    stats = extract_stats_from_text(text)
-    
-    # Check for player comparison
-    players_data = extract_player_comparison(text)
-    
-    # Check for time series data
-    time_data = extract_time_series(text)
-    
-    # Generate appropriate charts
-    
-    # 1. Single player stats
-    if stats and not players_data:
-        bar_chart = create_player_stats_bar(stats)
-        if bar_chart:
-            charts.append(('stats_bar', bar_chart))
-            insights.append(generate_stats_insight(stats))
+    try:
+        # Extract stats from text
+        stats = extract_stats_from_text(text)
         
-        shooting_chart = create_shooting_chart(stats)
-        if shooting_chart:
-            charts.append(('shooting', shooting_chart))
-            insights.append(generate_shooting_insight(stats))
-    
-    # 2. Player comparison
-    if players_data and len(players_data) >= 2:
-        comparison_chart = create_player_comparison(players_data)
-        if comparison_chart:
-            charts.append(('comparison', comparison_chart))
-            insights.append(generate_comparison_insight(players_data))
-    
-    # 3. Trend analysis
-    if time_data and len(time_data) >= 3:
-        trend_chart = create_trend_chart(time_data)
-        if trend_chart:
-            charts.append(('trend', trend_chart))
-            insights.append(generate_trend_insight(time_data))
-    
-    # 4. Efficiency metrics
-    if stats:
-        # Calculate True Shooting % if possible
-        if 'points' in stats and 'fg_made' in stats:
-            fg = stats['fg_made']
-            fta = stats.get('ft_made', {}).get('attempted', 0)
-            ts_pct = (stats['points'] / (2 * (fg['attempted'] + 0.44 * fta))) * 100 if fg['attempted'] > 0 else 0
+        # Check for player comparison
+        players_data = extract_player_comparison(text)
+        
+        # Check for time series data
+        time_data = extract_time_series(text)
+        
+        # Generate appropriate charts
+        
+        # 1. Single player stats
+        if stats and not players_data:
+            try:
+                bar_chart = create_player_stats_bar(stats)
+                if bar_chart:
+                    charts.append(('stats_bar', bar_chart))
+                    insights.append(generate_stats_insight(stats))
+            except Exception as e:
+                pass  # Skip this chart if error
             
-            if ts_pct > 0:
-                gauge = create_efficiency_gauge(ts_pct, "True Shooting %")
-                charts.append(('efficiency', gauge))
-                insights.append(f"**True Shooting: {ts_pct:.1f}%** - " + 
-                              ("Elite efficiency! 🔥" if ts_pct >= 60 else 
-                               "Good efficiency 👍" if ts_pct >= 55 else 
-                               "Below average - work on shot selection 📊"))
+            try:
+                shooting_chart = create_shooting_chart(stats)
+                if shooting_chart:
+                    charts.append(('shooting', shooting_chart))
+                    insights.append(generate_shooting_insight(stats))
+            except Exception as e:
+                pass  # Skip this chart if error
+        
+        # 2. Player comparison
+        if players_data and len(players_data) >= 2:
+            try:
+                comparison_chart = create_player_comparison(players_data)
+                if comparison_chart:
+                    charts.append(('comparison', comparison_chart))
+                    insights.append(generate_comparison_insight(players_data))
+            except Exception as e:
+                pass  # Skip this chart if error
+        
+        # 3. Trend analysis - SKIP for now to avoid errors
+        # if time_data and len(time_data) >= 3:
+        #     try:
+        #         trend_chart = create_trend_chart(time_data)
+        #         if trend_chart:
+        #             charts.append(('trend', trend_chart))
+        #             insights.append(generate_trend_insight(time_data))
+        #     except Exception as e:
+        #         pass
+        
+        # 4. Efficiency metrics
+        if stats:
+            try:
+                # Calculate True Shooting % if possible
+                if 'points' in stats and 'fg_made' in stats:
+                    fg = stats['fg_made']
+                    fta = stats.get('ft_made', {}).get('attempted', 0)
+                    if fg.get('attempted', 0) > 0:
+                        ts_pct = (stats['points'] / (2 * (fg['attempted'] + 0.44 * fta))) * 100
+                        
+                        if ts_pct > 0:
+                            gauge = create_efficiency_gauge(ts_pct, "True Shooting %")
+                            charts.append(('efficiency', gauge))
+                            insights.append(f"**True Shooting: {ts_pct:.1f}%** - " + 
+                                          ("Elite efficiency! 🔥" if ts_pct >= 60 else 
+                                           "Good efficiency 👍" if ts_pct >= 55 else 
+                                           "Below average - work on shot selection 📊"))
+            except Exception as e:
+                pass  # Skip this chart if error
+    
+    except Exception as e:
+        print(f"Error in analyze_and_visualize: {e}")
     
     return charts, insights
 
@@ -623,21 +669,25 @@ def generate_trend_insight(time_data):
 def display_analytics(text, context=""):
     """Display analytics charts in Streamlit"""
     
-    charts, insights = analyze_and_visualize(text, context)
-    
-    if not charts:
+    try:
+        charts, insights = analyze_and_visualize(text, context)
+        
+        if not charts:
+            return False
+        
+        for chart_type, chart in charts:
+            try:
+                st.plotly_chart(chart, use_container_width=True)
+            except Exception as e:
+                st.warning(f"Could not display {chart_type} chart")
+        
+        if insights:
+            st.markdown("#### 💡 Key Insights")
+            for insight in insights:
+                if insight:
+                    st.markdown(f"• {insight}")
+        
+        return True
+    except Exception as e:
+        st.error(f"Error displaying analytics: {str(e)}")
         return False
-    
-    st.markdown("---")
-    st.markdown("### 📊 Visual Analysis")
-    
-    for chart_type, chart in charts:
-        st.plotly_chart(chart, use_container_width=True)
-    
-    if insights:
-        st.markdown("### 💡 Key Insights")
-        for insight in insights:
-            if insight:
-                st.markdown(f"• {insight}")
-    
-    return True

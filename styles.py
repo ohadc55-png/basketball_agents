@@ -96,19 +96,39 @@ CSS_TEMPLATE = """
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
+        font-size: 14px !important;
     }
     
-    /* ===== SCALE DOWN EVERYTHING (like 80% zoom) ===== */
+    /* ===== SMALLER UI ELEMENTS ===== */
     .main .block-container {
-        zoom: 0.85;
-        -moz-transform: scale(0.85);
-        -moz-transform-origin: top left;
+        max-width: 1200px !important;
+        padding: 1rem 2rem !important;
     }
     
-    [data-testid="stSidebar"] > div {
-        zoom: 0.9;
-        -moz-transform: scale(0.9);
-        -moz-transform-origin: top left;
+    /* Smaller text globally */
+    .stApp, .stApp p, .stApp span, .stApp div, .stApp label {
+        font-size: 14px !important;
+    }
+    
+    /* Smaller headers */
+    .stApp h1 { font-size: 1.8rem !important; }
+    .stApp h2 { font-size: 1.5rem !important; }
+    .stApp h3 { font-size: 1.2rem !important; }
+    
+    /* Smaller buttons */
+    .stButton > button {
+        padding: 0.4rem 1rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* Smaller sidebar */
+    [data-testid="stSidebar"] {
+        width: 280px !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button {
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.75rem !important;
     }
     
     /* ===== HIDE STREAMLIT DEFAULTS ===== */

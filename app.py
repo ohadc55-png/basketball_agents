@@ -317,22 +317,29 @@ def render_sidebar(supabase):
 
 
 def render_header():
-    """Render main header"""
-    st.markdown('<div class="scoreboard"><div class="hero-title">HOOPS AI</div><div class="hero-subtitle">Your Personal Assistant Coach</div></div>', unsafe_allow_html=True)
+    """Render compact header - only shown when no messages"""
+    # Only show the big header when there are no messages (welcome state)
+    if not st.session_state.messages:
+        st.markdown('''
+        <div class="scoreboard" style="padding: 1rem 0; margin-bottom: 0.5rem;">
+            <div class="hero-title" style="font-size: 2rem;">HOOPS AI</div>
+            <div class="hero-subtitle" style="font-size: 0.9rem;">Your Personal Assistant Coach</div>
+        </div>
+        ''', unsafe_allow_html=True)
 
 
 def render_welcome():
-    """Render welcome banner"""
+    """Render welcome banner - only when no messages"""
     if not st.session_state.messages:
         coach = st.session_state.get('coach', {})
         name = coach.get('name', '').split()[0] if coach.get('name') else ''
         
         st.markdown(f'''
-        <div class="welcome-banner">
-            <div class="welcome-title">👋 Hey Coach {name}!</div>
-            <div class="welcome-text">Your AI coaching staff is ready. Ask anything about basketball strategy, player development, or team management.</div>
-            <div class="welcome-text" style="margin-top:0.5rem;">Tailored for: <strong style="color:#FF6B35;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</strong></div>
-            <div class="welcome-text" style="margin-top:1rem; font-size:0.9rem; color:#888;">💡 <em>Check out Quick Ideas in the sidebar for instant prompts!</em></div>
+        <div class="welcome-banner" style="padding: 1rem 1.5rem; margin-bottom: 1rem;">
+            <div class="welcome-title" style="font-size: 1.3rem;">👋 Hey Coach {name}!</div>
+            <div class="welcome-text" style="font-size: 0.9rem;">Your AI coaching staff is ready. Ask anything about basketball strategy, player development, or team management.</div>
+            <div class="welcome-text" style="margin-top:0.5rem; font-size: 0.85rem;">Tailored for: <strong style="color:#FF6B35;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</strong></div>
+            <div class="welcome-text" style="margin-top:0.8rem; font-size:0.8rem; color:#888;">💡 <em>Check out Quick Ideas in the sidebar for instant prompts!</em></div>
         </div>
         ''', unsafe_allow_html=True)
 
@@ -465,10 +472,20 @@ def render_chat(client, supabase):
 
 
 def render_mobile_nav(supabase):
-    """Render mobile navigation buttons"""
+    """Render mobile-only navigation buttons (hidden on desktop)"""
     coach = st.session_state.get('coach', {})
     
-    st.markdown('<style>@media (min-width: 768px) { .mobile-nav-section { display: none !important; } }</style><div class="mobile-nav-section">', unsafe_allow_html=True)
+    # This section is ONLY visible on mobile (screens < 768px)
+    st.markdown('''
+    <style>
+        .mobile-nav-container { display: none; }
+        @media (max-width: 768px) {
+            .mobile-nav-container { display: block; }
+        }
+    </style>
+    ''', unsafe_allow_html=True)
+    
+    st.markdown('<div class="mobile-nav-container">', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
@@ -561,15 +578,18 @@ def main():
     else:
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         render_sidebar(supabase)
-        render_mobile_nav(supabase)
-        render_header()
         
         # Page routing
         if st.session_state.current_page == 'logistics':
+            # Show compact title for logistics page
+            st.markdown('<div style="text-align:center; padding:0.5rem;"><span style="font-family:Orbitron,monospace; color:#FF6B35; font-size:1.2rem;">📋 TEAM MANAGER</span></div>', unsafe_allow_html=True)
             coach = st.session_state.get('coach', {})
             render_logistics_page(supabase, coach.get('id'))
         else:
-            render_welcome()
+            # Chat page - header and welcome only when no messages
+            render_header()  # Will only show if no messages
+            render_welcome()  # Will only show if no messages
+            render_mobile_nav(supabase)  # Mobile only
             render_chat(openai_client, supabase)
 
 

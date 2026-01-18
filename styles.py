@@ -96,80 +96,170 @@ CSS_TEMPLATE = """
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-        font-size: 14px !important;
     }
     
-    /* ===== SMALLER UI ELEMENTS ===== */
+    /* ===== GLOBAL SCALE DOWN - Like 75-80% zoom ===== */
+    
+    /* Base font size smaller */
+    html, body, .stApp {
+        font-size: 12px !important;
+    }
+    
     .main .block-container {
-        max-width: 1200px !important;
-        padding: 0.8rem 1.5rem !important;
+        max-width: 1100px !important;
+        padding: 0.5rem 1rem !important;
     }
     
-    /* Smaller text globally */
-    .stApp, .stApp p, .stApp span, .stApp div, .stApp label {
-        font-size: 13px !important;
+    /* All text smaller */
+    .stApp p, .stApp span, .stApp div, .stApp label, .stApp li {
+        font-size: 0.85rem !important;
+        line-height: 1.4 !important;
     }
     
-    /* Smaller headers */
-    .stApp h1 { font-size: 1.5rem !important; }
-    .stApp h2 { font-size: 1.3rem !important; }
-    .stApp h3 { font-size: 1.1rem !important; }
+    /* Headers proportionally smaller */
+    .stApp h1 { font-size: 1.4rem !important; }
+    .stApp h2 { font-size: 1.2rem !important; }
+    .stApp h3 { font-size: 1rem !important; }
+    .stApp h4 { font-size: 0.9rem !important; }
     
-    /* Smaller buttons */
+    /* ===== ALL BUTTONS SMALLER ===== */
     .stButton > button {
-        padding: 0.35rem 0.8rem !important;
-        font-size: 0.75rem !important;
+        padding: 0.25rem 0.6rem !important;
+        font-size: 0.7rem !important;
+        min-height: 32px !important;
+        line-height: 1.2 !important;
     }
     
-    /* Smaller sidebar */
+    /* Chat history buttons in sidebar */
+    [data-testid="stSidebar"] .stButton > button {
+        padding: 0.2rem 0.5rem !important;
+        font-size: 0.65rem !important;
+        min-height: 28px !important;
+        max-height: 45px !important;
+        overflow: hidden !important;
+    }
+    
+    /* ===== SIDEBAR COMPACT ===== */
     [data-testid="stSidebar"] {
-        width: 260px !important;
+        width: 240px !important;
+    }
+    
+    [data-testid="stSidebar"] > div:first-child {
+        width: 240px !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-        padding: 0.5rem !important;
+        padding: 0.4rem !important;
     }
     
-    [data-testid="stSidebar"] .stButton > button {
-        padding: 0.3rem 0.6rem !important;
+    /* Sidebar text smaller */
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] label {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Sidebar selectbox */
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] {
         font-size: 0.7rem !important;
     }
     
-    /* ===== SIDEBAR EXPANDER FIX ===== */
-    [data-testid="stSidebar"] [data-testid="stExpander"] {
-        background: rgba(30, 30, 30, 0.8) !important;
-        border: 1px solid rgba(255, 107, 53, 0.3) !important;
-        border-radius: 8px !important;
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div {
+        padding: 0.2rem 0.4rem !important;
+        min-height: 28px !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* ===== CHAT MESSAGES COMPACT ===== */
+    [data-testid="stChatMessage"] {
+        padding: 0.5rem 0.8rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    [data-testid="stChatMessageContent"] {
+        font-size: 0.8rem !important;
+    }
+    
+    [data-testid="stChatMessageContent"] p {
+        font-size: 0.8rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+    
+    /* Chat input smaller */
+    [data-testid="stChatInput"] {
+        font-size: 0.8rem !important;
+    }
+    
+    [data-testid="stChatInput"] textarea {
+        font-size: 0.8rem !important;
+        padding: 0.5rem !important;
+        min-height: 36px !important;
+    }
+    
+    /* ===== WELCOME BANNER COMPACT ===== */
+    .welcome-banner {
+        padding: 0.8rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .welcome-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .welcome-text {
+        font-size: 0.8rem !important;
+    }
+    
+    /* ===== SCOREBOARD/HEADER COMPACT ===== */
+    .scoreboard {
+        padding: 0.6rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .hero-title {
+        font-size: 1.5rem !important;
+    }
+    
+    .hero-subtitle {
+        font-size: 0.75rem !important;
+    }
+    
+    /* ===== PROFILE CARD COMPACT ===== */
+    .profile-card {
+        padding: 0.4rem 0.6rem !important;
+    }
+    
+    .profile-card div {
+        font-size: 0.7rem !important;
+    }
+    
+    /* ===== AGENT CARDS COMPACT ===== */
+    .agent-card {
+        padding: 0.4rem 0.6rem !important;
         margin-bottom: 0.3rem !important;
     }
     
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
-        padding: 0.5rem 0.8rem !important;
-        font-size: 0.8rem !important;
-        color: #FFFFFF !important;
+    .agent-card span {
+        font-size: 1rem !important;
     }
     
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary span {
-        color: #FFFFFF !important;
-        font-weight: 600 !important;
+    .agent-card div div {
+        font-size: 0.7rem !important;
     }
     
-    /* Hide the "arrow" text bug - force proper rendering */
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
-        display: inline-block !important;
-        width: 16px !important;
-        height: 16px !important;
-        fill: #FF6B35 !important;
-    }
-    
-    [data-testid="stSidebar"] [data-testid="stExpander"] > div > div {
-        padding: 0.3rem !important;
+    /* ===== DIVIDERS SMALLER ===== */
+    .sidebar-divider {
+        margin: 0.4rem 0 !important;
     }
     
     /* Mobile nav hide on desktop */
     @media (min-width: 769px) {
-        .mobile-only-nav {
+        .mobile-only-nav,
+        .mobile-nav-wrapper {
             display: none !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }
     }
     

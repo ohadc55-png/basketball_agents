@@ -102,33 +102,75 @@ CSS_TEMPLATE = """
     /* ===== SMALLER UI ELEMENTS ===== */
     .main .block-container {
         max-width: 1200px !important;
-        padding: 1rem 2rem !important;
+        padding: 0.8rem 1.5rem !important;
     }
     
     /* Smaller text globally */
     .stApp, .stApp p, .stApp span, .stApp div, .stApp label {
-        font-size: 14px !important;
+        font-size: 13px !important;
     }
     
     /* Smaller headers */
-    .stApp h1 { font-size: 1.8rem !important; }
-    .stApp h2 { font-size: 1.5rem !important; }
-    .stApp h3 { font-size: 1.2rem !important; }
+    .stApp h1 { font-size: 1.5rem !important; }
+    .stApp h2 { font-size: 1.3rem !important; }
+    .stApp h3 { font-size: 1.1rem !important; }
     
     /* Smaller buttons */
     .stButton > button {
-        padding: 0.4rem 1rem !important;
-        font-size: 0.8rem !important;
+        padding: 0.35rem 0.8rem !important;
+        font-size: 0.75rem !important;
     }
     
     /* Smaller sidebar */
     [data-testid="stSidebar"] {
-        width: 280px !important;
+        width: 260px !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        padding: 0.5rem !important;
     }
     
     [data-testid="stSidebar"] .stButton > button {
-        padding: 0.4rem 0.8rem !important;
-        font-size: 0.75rem !important;
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* ===== SIDEBAR EXPANDER FIX ===== */
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: rgba(30, 30, 30, 0.8) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 8px !important;
+        margin-bottom: 0.3rem !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        padding: 0.5rem 0.8rem !important;
+        font-size: 0.8rem !important;
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary span {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Hide the "arrow" text bug - force proper rendering */
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
+        display: inline-block !important;
+        width: 16px !important;
+        height: 16px !important;
+        fill: #FF6B35 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stExpander"] > div > div {
+        padding: 0.3rem !important;
+    }
+    
+    /* Mobile nav hide on desktop */
+    @media (min-width: 769px) {
+        .mobile-only-nav {
+            display: none !important;
+        }
     }
     
     /* ===== HIDE STREAMLIT DEFAULTS ===== */

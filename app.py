@@ -153,7 +153,8 @@ def render_sidebar(supabase):
             st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
             
             # Offense
-            with st.expander("🏀 Offense", expanded=False):
+            with st.expander("Offense", expanded=False):
+                st.markdown("🏀", unsafe_allow_html=True)
                 if st.button("Motion offense basics", key="qi_offense_1", use_container_width=True):
                     st.session_state.pending_prompt = "Explain motion offense basics and give me 3 simple actions to start with."
                     st.rerun()
@@ -168,7 +169,8 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Defense
-            with st.expander("🛡️ Defense", expanded=False):
+            with st.expander("Defense", expanded=False):
+                st.markdown("🛡️", unsafe_allow_html=True)
                 if st.button("Man-to-man principles", key="qi_defense_1", use_container_width=True):
                     st.session_state.pending_prompt = "What are the key principles of man-to-man defense I should teach my team?"
                     st.rerun()
@@ -183,7 +185,8 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Fitness
-            with st.expander("💪 Fitness", expanded=False):
+            with st.expander("Fitness", expanded=False):
+                st.markdown("💪", unsafe_allow_html=True)
                 if st.button("Pre-game warmup", key="qi_fitness_1", use_container_width=True):
                     st.session_state.pending_prompt = "Create a 15-minute pre-game warmup routine for my team."
                     st.rerun()
@@ -198,7 +201,8 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Mental
-            with st.expander("🧠 Mental", expanded=False):
+            with st.expander("Mental", expanded=False):
+                st.markdown("🧠", unsafe_allow_html=True)
                 if st.button("Pre-game team talk", key="qi_mental_1", use_container_width=True):
                     st.session_state.pending_prompt = "Help me structure an effective pre-game team talk."
                     st.rerun()
@@ -213,7 +217,8 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Analytics
-            with st.expander("📊 Analytics", expanded=False):
+            with st.expander("Analytics", expanded=False):
+                st.markdown("📊", unsafe_allow_html=True)
                 if st.button("Analyze player stats", key="qi_analytics_1", use_container_width=True):
                     st.session_state.pending_prompt = "I want to analyze a player's performance. What statistics should I provide you?"
                     st.rerun()
@@ -225,7 +230,8 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Youth
-            with st.expander("👶 Youth (5-12)", expanded=False):
+            with st.expander("Youth (5-12)", expanded=False):
+                st.markdown("👶", unsafe_allow_html=True)
                 if st.button("Fun drills for kids", key="qi_youth_1", use_container_width=True):
                     st.session_state.pending_prompt = "Give me fun and engaging basketball games and drills for kids ages 6-10."
                     st.rerun()
@@ -237,7 +243,8 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Nutrition - Last as requested
-            with st.expander("🍎 Nutrition", expanded=False):
+            with st.expander("Nutrition", expanded=False):
+                st.markdown("🍎", unsafe_allow_html=True)
                 if st.button("Build meal plan", key="qi_nutrition_1", use_container_width=True):
                     st.session_state.pending_prompt = "I want to create a nutrition plan for my player. Please ask me the relevant questions to build a personalized meal plan."
                     st.rerun()
@@ -472,20 +479,25 @@ def render_chat(client, supabase):
 
 
 def render_mobile_nav(supabase):
-    """Render mobile-only navigation buttons (hidden on desktop)"""
-    coach = st.session_state.get('coach', {})
-    
-    # This section is ONLY visible on mobile (screens < 768px)
+    """Render mobile-only navigation buttons (hidden on desktop via CSS)"""
+    # Add CSS to hide on desktop
     st.markdown('''
     <style>
-        .mobile-nav-container { display: none; }
-        @media (max-width: 768px) {
-            .mobile-nav-container { display: block; }
+        /* Hide mobile nav on desktop */
+        @media (min-width: 769px) {
+            [data-testid="stVerticalBlock"]:has(> [data-testid="stHorizontalBlock"] button[key*="mobile"]),
+            .mobile-only-nav {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                overflow: hidden !important;
+            }
         }
     </style>
+    <div class="mobile-only-nav">
     ''', unsafe_allow_html=True)
     
-    st.markdown('<div class="mobile-nav-container">', unsafe_allow_html=True)
+    coach = st.session_state.get('coach', {})
     
     col1, col2, col3 = st.columns(3)
     
@@ -510,9 +522,11 @@ def render_mobile_nav(supabase):
             st.session_state.show_mobile_history = False
             st.rerun()
     
+    st.markdown('</div>', unsafe_allow_html=True)
+    
     # Mobile history panel
     if st.session_state.get('show_mobile_history', False):
-        st.markdown('<div style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;"><div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">📜 CHAT HISTORY</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="mobile-only-nav" style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;"><div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
         
         conversations = get_coach_conversations(supabase, coach.get('id'))
         

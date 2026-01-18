@@ -149,6 +149,107 @@ def render_sidebar(supabase):
             
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
+            # ===== QUICK IDEAS SECTION =====
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
+            
+            # Offense
+            with st.expander("🏀 OFFENSE", expanded=False):
+                if st.button("Motion offense basics", key="qi_offense_1", use_container_width=True):
+                    st.session_state.pending_prompt = "Explain motion offense basics and give me 3 simple actions to start with."
+                    st.rerun()
+                if st.button("Pick & Roll variations", key="qi_offense_2", use_container_width=True):
+                    st.session_state.pending_prompt = "Show me different pick and roll variations and when to use each one."
+                    st.rerun()
+                if st.button("Beat 2-3 zone", key="qi_offense_3", use_container_width=True):
+                    st.session_state.pending_prompt = "How should we attack a 2-3 zone defense? Give me specific actions and player movements."
+                    st.rerun()
+                if st.button("End of game plays", key="qi_offense_4", use_container_width=True):
+                    st.session_state.pending_prompt = "Give me 3 effective end-of-game plays for different situations (need 3, need 2, etc)."
+                    st.rerun()
+            
+            # Defense
+            with st.expander("🛡️ DEFENSE", expanded=False):
+                if st.button("Man-to-man principles", key="qi_defense_1", use_container_width=True):
+                    st.session_state.pending_prompt = "What are the key principles of man-to-man defense I should teach my team?"
+                    st.rerun()
+                if st.button("Zone defense setup", key="qi_defense_2", use_container_width=True):
+                    st.session_state.pending_prompt = "How do I set up a 2-3 zone defense? Explain rotations and responsibilities."
+                    st.rerun()
+                if st.button("Press break strategies", key="qi_defense_3", use_container_width=True):
+                    st.session_state.pending_prompt = "How do we break full-court press? Give me formation and movement options."
+                    st.rerun()
+                if st.button("Defending pick & roll", key="qi_defense_4", use_container_width=True):
+                    st.session_state.pending_prompt = "What are the different ways to defend pick and roll? When should I use each?"
+                    st.rerun()
+            
+            # Fitness
+            with st.expander("💪 FITNESS", expanded=False):
+                if st.button("Pre-game warmup", key="qi_fitness_1", use_container_width=True):
+                    st.session_state.pending_prompt = "Create a 15-minute pre-game warmup routine for my team."
+                    st.rerun()
+                if st.button("Weekly strength program", key="qi_fitness_2", use_container_width=True):
+                    st.session_state.pending_prompt = "Design a weekly strength and conditioning program for basketball players."
+                    st.rerun()
+                if st.button("Injury prevention", key="qi_fitness_3", use_container_width=True):
+                    st.session_state.pending_prompt = "What exercises should we do to prevent common basketball injuries?"
+                    st.rerun()
+                if st.button("In-season conditioning", key="qi_fitness_4", use_container_width=True):
+                    st.session_state.pending_prompt = "How do I maintain fitness during the season without overtraining?"
+                    st.rerun()
+            
+            # Mental
+            with st.expander("🧠 MENTAL", expanded=False):
+                if st.button("Pre-game team talk", key="qi_mental_1", use_container_width=True):
+                    st.session_state.pending_prompt = "Help me structure an effective pre-game team talk."
+                    st.rerun()
+                if st.button("Building confidence", key="qi_mental_2", use_container_width=True):
+                    st.session_state.pending_prompt = "How do I build confidence in a player who is struggling?"
+                    st.rerun()
+                if st.button("Handling pressure", key="qi_mental_3", use_container_width=True):
+                    st.session_state.pending_prompt = "How do I teach my players to perform better under pressure?"
+                    st.rerun()
+                if st.button("Team chemistry", key="qi_mental_4", use_container_width=True):
+                    st.session_state.pending_prompt = "What activities and approaches help build team chemistry?"
+                    st.rerun()
+            
+            # Analytics
+            with st.expander("📊 ANALYTICS", expanded=False):
+                if st.button("Analyze player stats", key="qi_analytics_1", use_container_width=True):
+                    st.session_state.pending_prompt = "I want to analyze a player's performance. What statistics should I provide you?"
+                    st.rerun()
+                if st.button("Team performance review", key="qi_analytics_2", use_container_width=True):
+                    st.session_state.pending_prompt = "Help me do a team performance review. What data do you need from me?"
+                    st.rerun()
+                if st.button("Key metrics explained", key="qi_analytics_3", use_container_width=True):
+                    st.session_state.pending_prompt = "Explain the most important basketball analytics metrics I should track."
+                    st.rerun()
+            
+            # Youth
+            with st.expander("👶 YOUTH (5-12)", expanded=False):
+                if st.button("Fun drills for kids", key="qi_youth_1", use_container_width=True):
+                    st.session_state.pending_prompt = "Give me fun and engaging basketball games and drills for kids ages 6-10."
+                    st.rerun()
+                if st.button("Teaching fundamentals", key="qi_youth_2", use_container_width=True):
+                    st.session_state.pending_prompt = "How do I teach basketball fundamentals to young kids in a fun way?"
+                    st.rerun()
+                if st.button("Age-appropriate plays", key="qi_youth_3", use_container_width=True):
+                    st.session_state.pending_prompt = "What simple plays work best for youth basketball teams?"
+                    st.rerun()
+            
+            # Nutrition - Last as requested
+            with st.expander("🍎 NUTRITION", expanded=False):
+                if st.button("Build meal plan", key="qi_nutrition_1", use_container_width=True):
+                    st.session_state.pending_prompt = "I want to create a nutrition plan for my player. Please ask me the relevant questions to build a personalized meal plan."
+                    st.rerun()
+                if st.button("Game day nutrition", key="qi_nutrition_2", use_container_width=True):
+                    st.session_state.pending_prompt = "What should players eat before, during, and after games?"
+                    st.rerun()
+                if st.button("Hydration guide", key="qi_nutrition_3", use_container_width=True):
+                    st.session_state.pending_prompt = "Create a hydration guide for basketball players during practice and games."
+                    st.rerun()
+            
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+            
             # Chat History
             st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
             
@@ -221,7 +322,7 @@ def render_header():
 
 
 def render_welcome():
-    """Render welcome banner and quick plays"""
+    """Render welcome banner"""
     if not st.session_state.messages:
         coach = st.session_state.get('coach', {})
         name = coach.get('name', '').split()[0] if coach.get('name') else ''
@@ -231,27 +332,9 @@ def render_welcome():
             <div class="welcome-title">👋 Hey Coach {name}!</div>
             <div class="welcome-text">Your AI coaching staff is ready. Ask anything about basketball strategy, player development, or team management.</div>
             <div class="welcome-text" style="margin-top:0.5rem;">Tailored for: <strong style="color:#FF6B35;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</strong></div>
+            <div class="welcome-text" style="margin-top:1rem; font-size:0.9rem; color:#888;">💡 <em>Check out Quick Ideas in the sidebar for instant prompts!</em></div>
         </div>
         ''', unsafe_allow_html=True)
-        
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin:1.5rem 0 1rem; letter-spacing:2px;">⚡ QUICK PLAYS</div>', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        col3, col4 = st.columns(2)
-        col5, _ = st.columns(2)
-        
-        quick_plays = [
-            (col1, "🎯 PRACTICE PLAN\n\nBuild a 90-min practice", "Build me a 90-minute practice plan for my team, considering our age group and level."),
-            (col2, "📋 BEAT ZONE\n\nAttack 2-3 zone defense", "How should we attack a 2-3 zone defense? Give me specific actions and player movements."),
-            (col3, "💪 SHOOTING FORM\n\nTeach correct mechanics", "How do I teach correct shooting mechanics to my players? Break it down step by step."),
-            (col4, "👶 FUN DRILLS\n\nGames for kids 6-10", "Give me fun and engaging basketball games and drills for kids ages 6-10."),
-            (col5, "📊 GAME ANALYSIS\n\nAnalyze team stats", "I want to analyze my team's performance. What statistics should I provide you?"),
-        ]
-        
-        for col, label, prompt in quick_plays:
-            with col:
-                if st.button(label, use_container_width=True):
-                    st.session_state.pending_prompt = prompt
 
 
 def render_file_upload():

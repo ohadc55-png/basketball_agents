@@ -153,7 +153,7 @@ def render_sidebar(supabase):
             st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
             
             # Offense
-            with st.expander("🏀 OFFENSE", expanded=False):
+            with st.expander("🏀 Offense", expanded=False):
                 if st.button("Motion offense basics", key="qi_offense_1", use_container_width=True):
                     st.session_state.pending_prompt = "Explain motion offense basics and give me 3 simple actions to start with."
                     st.rerun()
@@ -168,7 +168,7 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Defense
-            with st.expander("🛡️ DEFENSE", expanded=False):
+            with st.expander("🛡️ Defense", expanded=False):
                 if st.button("Man-to-man principles", key="qi_defense_1", use_container_width=True):
                     st.session_state.pending_prompt = "What are the key principles of man-to-man defense I should teach my team?"
                     st.rerun()
@@ -183,7 +183,7 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Fitness
-            with st.expander("💪 FITNESS", expanded=False):
+            with st.expander("💪 Fitness", expanded=False):
                 if st.button("Pre-game warmup", key="qi_fitness_1", use_container_width=True):
                     st.session_state.pending_prompt = "Create a 15-minute pre-game warmup routine for my team."
                     st.rerun()
@@ -198,7 +198,7 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Mental
-            with st.expander("🧠 MENTAL", expanded=False):
+            with st.expander("🧠 Mental", expanded=False):
                 if st.button("Pre-game team talk", key="qi_mental_1", use_container_width=True):
                     st.session_state.pending_prompt = "Help me structure an effective pre-game team talk."
                     st.rerun()
@@ -213,7 +213,7 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Analytics
-            with st.expander("📊 ANALYTICS", expanded=False):
+            with st.expander("📊 Analytics", expanded=False):
                 if st.button("Analyze player stats", key="qi_analytics_1", use_container_width=True):
                     st.session_state.pending_prompt = "I want to analyze a player's performance. What statistics should I provide you?"
                     st.rerun()
@@ -225,7 +225,7 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Youth
-            with st.expander("👶 YOUTH (5-12)", expanded=False):
+            with st.expander("👶 Youth (5-12)", expanded=False):
                 if st.button("Fun drills for kids", key="qi_youth_1", use_container_width=True):
                     st.session_state.pending_prompt = "Give me fun and engaging basketball games and drills for kids ages 6-10."
                     st.rerun()
@@ -237,7 +237,7 @@ def render_sidebar(supabase):
                     st.rerun()
             
             # Nutrition - Last as requested
-            with st.expander("🍎 NUTRITION", expanded=False):
+            with st.expander("🍎 Nutrition", expanded=False):
                 if st.button("Build meal plan", key="qi_nutrition_1", use_container_width=True):
                     st.session_state.pending_prompt = "I want to create a nutrition plan for my player. Please ask me the relevant questions to build a personalized meal plan."
                     st.rerun()

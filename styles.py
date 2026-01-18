@@ -98,6 +98,19 @@ CSS_TEMPLATE = """
         background-attachment: fixed;
     }
     
+    /* ===== SCALE DOWN EVERYTHING (like 80% zoom) ===== */
+    .main .block-container {
+        zoom: 0.85;
+        -moz-transform: scale(0.85);
+        -moz-transform-origin: top left;
+    }
+    
+    [data-testid="stSidebar"] > div {
+        zoom: 0.9;
+        -moz-transform: scale(0.9);
+        -moz-transform-origin: top left;
+    }
+    
     /* ===== HIDE STREAMLIT DEFAULTS ===== */
     #MainMenu, footer, header {visibility: hidden;}
     

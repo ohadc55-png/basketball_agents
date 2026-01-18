@@ -5,6 +5,7 @@ Main Application File (Optimized)
 """
 
 import streamlit as st
+import re
 
 from config import (
     APP_TITLE, APP_ICON, LOGO_URL,
@@ -350,12 +351,22 @@ def render_chat(client, supabase):
                 )
                 formatted = format_response(raw_response, agent)
             st.markdown(formatted, unsafe_allow_html=True)
+        
+        # If ANALYST and user provided stats, show visualizations OUTSIDE chat message
+        if agent == Agent.ANALYST:
+            stats = extract_stats_from_text(prompt)
+            # Check if there are numbers that look like stats
+            numbers_in_prompt = re.findall(r'\b(\d+)\b', prompt)
             
-            # If ANALYST and user provided stats, show visualizations
-            if agent == Agent.ANALYST:
-                stats = extract_stats_from_text(prompt)
-                if stats:
-                    display_analytics(prompt)
+            if stats:
+                st.markdown("---")
+                st.markdown("### 📊 Visual Analysis")
+                display_analytics(prompt)
+            elif len(numbers_in_prompt) >= 2:
+                # Try to display even with fewer detected stats
+                st.markdown("---")
+                st.markdown("### 📊 Visual Analysis")
+                display_analytics(prompt)
         
         # Save response
         if st.session_state.current_conversation:

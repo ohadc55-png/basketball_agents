@@ -46,33 +46,57 @@ def extract_stats_from_text(text):
     """Extract statistical data from user's text input"""
     stats = {}
     
-    # Common patterns for basketball stats
+    # Don't lowercase - Hebrew doesn't have case, and we want to preserve it
+    text_search = text
+    
+    # Common patterns for basketball stats - improved for Hebrew and English
     patterns = {
-        'points': r'(\d+)\s*(?:נקודות|points?|pts?|נק)',
-        'rebounds': r'(\d+)\s*(?:ריבאונדים|rebounds?|rebs?|ריב)',
-        'assists': r'(\d+)\s*(?:אסיסטים|assists?|ast|אסיסט)',
-        'steals': r'(\d+)\s*(?:חטיפות|steals?|stl)',
-        'blocks': r'(\d+)\s*(?:בלוקים|blocks?|blk)',
-        'turnovers': r'(\d+)\s*(?:טעויות|turnovers?|tov?|איבודים)',
-        'fg_made': r'(\d+)[/-](\d+)\s*(?:מהשדה|fg|field goals?|קליעות)',
-        'three_made': r'(\d+)[/-](\d+)\s*(?:שלש|3pt?|three|משלש)',
-        'ft_made': r'(\d+)[/-](\d+)\s*(?:עונשין|ft|free throws?|זריקות חופשיות)',
-        'minutes': r'(\d+)\s*(?:דקות|minutes?|mins?|דק)',
-        'fg_pct': r'(\d+\.?\d*)\s*%?\s*(?:מהשדה|fg%?|אחוז קליעה)',
-        'three_pct': r'(\d+\.?\d*)\s*%?\s*(?:משלש|3pt?%?|שלש)',
-        'ft_pct': r'(\d+\.?\d*)\s*%?\s*(?:עונשין|ft%?|חופשיות)',
+        'points': r'(\d+)\s*(?:נקודות|נקודה|points?|pts?|נק)',
+        'rebounds': r'(\d+)\s*(?:ריבאונדים|ריבאונד|rebounds?|rebs?|ריב)',
+        'assists': r'(\d+)\s*(?:אסיסטים|אסיסט|assists?|ast)',
+        'steals': r'(\d+)\s*(?:חטיפות|חטיפה|steals?|stl)',
+        'blocks': r'(\d+)\s*(?:בלוקים|בלוק|blocks?|blk)',
+        'turnovers': r'(\d+)\s*(?:טעויות|טעות|איבודים|איבוד|turnovers?|tov)',
+        'minutes': r'(\d+)\s*(?:דקות|דקה|minutes?|mins?|דק)',
     }
     
-    text_lower = text.lower()
+    # Shooting patterns - X/Y format
+    shooting_patterns = {
+        'fg_made': r'(\d+)\s*[/\-]\s*(\d+)\s*(?:מהשדה|fg|field goals?|קליעות|מהמגרש|שדה)',
+        'three_made': r'(\d+)\s*[/\-]\s*(\d+)\s*(?:משלש|משלושה|לשלש|3pt?|three|תלת)',
+        'ft_made': r'(\d+)\s*[/\-]\s*(\d+)\s*(?:עונשין|חופשיות|ft|free throws?|זריקות)',
+    }
     
+    # Extract simple stats
     for stat_name, pattern in patterns.items():
-        matches = re.findall(pattern, text_lower, re.IGNORECASE)
+        matches = re.findall(pattern, text_search, re.IGNORECASE | re.UNICODE)
         if matches:
-            if isinstance(matches[0], tuple):
-                # For made/attempted patterns (e.g., 5/10)
-                stats[stat_name] = {'made': int(matches[0][0]), 'attempted': int(matches[0][1])}
-            else:
-                stats[stat_name] = float(matches[0]) if '.' in str(matches[0]) else int(matches[0])
+            stats[stat_name] = int(matches[0])
+    
+    # Extract shooting stats (made/attempted)
+    for stat_name, pattern in shooting_patterns.items():
+        matches = re.findall(pattern, text_search, re.IGNORECASE | re.UNICODE)
+        if matches:
+            stats[stat_name] = {'made': int(matches[0][0]), 'attempted': int(matches[0][1])}
+    
+    # Fallback: if no specific patterns matched, look for any numbers with context
+    if not stats:
+        # Look for "X points" or "scored X" patterns
+        points_match = re.search(r'(?:scored?|קלע|הבקיע)\s*(\d+)', text_search, re.IGNORECASE | re.UNICODE)
+        if points_match:
+            stats['points'] = int(points_match.group(1))
+        
+        # Look for standalone numbers if text mentions basketball stats
+        basketball_keywords = ['game', 'משחק', 'stats', 'סטטיסטיקה', 'performance', 'ביצועים', 'שחקן', 'player']
+        if any(word in text_search.lower() for word in basketball_keywords):
+            numbers = re.findall(r'\b(\d+)\b', text_search)
+            if len(numbers) >= 3:
+                # Assume first few numbers are pts, reb, ast
+                stats['points'] = int(numbers[0])
+                if len(numbers) > 1:
+                    stats['rebounds'] = int(numbers[1])
+                if len(numbers) > 2:
+                    stats['assists'] = int(numbers[2])
     
     return stats
 

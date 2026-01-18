@@ -514,6 +514,67 @@ CSS_TEMPLATE = """
         -webkit-text-fill-color: #000000 !important;
     }
     
+    /* ===== SIDEBAR EXPANDER STYLES (Quick Ideas) ===== */
+    [data-testid="stSidebar"] .streamlit-expanderHeader {
+        background: linear-gradient(135deg, rgba(40, 40, 40, 0.9), rgba(30, 30, 30, 0.9)) !important;
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        border-radius: 10px !important;
+        color: #FFFFFF !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        padding: 0.6rem 1rem !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    [data-testid="stSidebar"] .streamlit-expanderHeader:hover {
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 107, 53, 0.1)) !important;
+        border-color: #FF6B35 !important;
+    }
+    
+    [data-testid="stSidebar"] .streamlit-expanderHeader p {
+        color: #FFFFFF !important;
+        font-size: 0.95rem !important;
+        margin: 0 !important;
+    }
+    
+    [data-testid="stSidebar"] .streamlit-expanderContent {
+        background: rgba(20, 20, 20, 0.8) !important;
+        border: 1px solid rgba(255, 107, 53, 0.2) !important;
+        border-top: none !important;
+        border-radius: 0 0 10px 10px !important;
+        padding: 0.5rem !important;
+    }
+    
+    /* Quick Ideas buttons inside expander */
+    [data-testid="stSidebar"] .streamlit-expanderContent .stButton > button {
+        background: rgba(40, 40, 40, 0.6) !important;
+        border: 1px solid rgba(255, 107, 53, 0.2) !important;
+        color: #CCCCCC !important;
+        -webkit-text-fill-color: #CCCCCC !important;
+        font-size: 0.8rem !important;
+        font-family: 'Inter', sans-serif !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        padding: 0.5rem 0.8rem !important;
+        margin: 0.2rem 0 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+    
+    [data-testid="stSidebar"] .streamlit-expanderContent .stButton > button:hover {
+        background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        border-color: #FF6B35 !important;
+    }
+    
+    /* Fix expander arrow icon */
+    [data-testid="stSidebar"] .streamlit-expanderHeader svg {
+        fill: #FF6B35 !important;
+        color: #FF6B35 !important;
+    }
+    
     /* ===== PREMIUM RESPONSE BADGE ===== */
     .response-badge {
         display: inline-flex;

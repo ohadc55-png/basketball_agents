@@ -101,38 +101,39 @@ def render_login_page(supabase):
 
 
 def render_sidebar(supabase):
-    """Render sidebar with logo, profile, and navigation"""
+    """Render sidebar with clean professional navigation"""
     coach = st.session_state.get('coach', {})
     
     with st.sidebar:
-        # Logo
-        st.markdown(f'<div style="text-align:center; padding:1rem 0;"><img src="{LOGO_URL}" style="width:220px; border-radius:10px;"></div>', unsafe_allow_html=True)
+        # Logo - smaller and cleaner
+        st.markdown(f'<div style="text-align:center; padding:0.5rem 0;"><img src="{LOGO_URL}" style="width:160px; border-radius:8px;"></div>', unsafe_allow_html=True)
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Profile
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👤 COACH PROFILE</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="profile-card"><div style="font-weight:700; color:#FFFFFF; font-size:1.1rem;">{coach.get("name", "Coach")}</div><div style="color:#B0B0B0; font-size:0.9rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div></div>', unsafe_allow_html=True)
+        # Profile - clean card style
+        st.markdown('<div class="sidebar-section-title">Profile</div>', unsafe_allow_html=True)
+        st.markdown(f'''
+        <div class="profile-card">
+            <div class="profile-name">{coach.get("name", "Coach")}</div>
+            <div class="profile-team">{coach.get("team_name", "")} • {coach.get("age_group", "")} • {coach.get("level", "")}</div>
+        </div>
+        ''', unsafe_allow_html=True)
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         # Navigation
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">🧭 NAVIGATION</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-section-title">Navigation</div>', unsafe_allow_html=True)
         
         # Initialize current page
         if 'current_page' not in st.session_state:
             st.session_state.current_page = 'chat'
         
-        # Navigation with custom styling
-        chat_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'chat' else ""
-        manage_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'logistics' else ""
-        
         col_nav1, col_nav2 = st.columns(2)
         with col_nav1:
-            if st.button("💬 CHAT", use_container_width=True, key="nav_chat",
+            if st.button("💬 Chat", use_container_width=True, key="nav_chat",
                         type="primary" if st.session_state.current_page == 'chat' else "secondary"):
                 st.session_state.current_page = 'chat'
                 st.rerun()
         with col_nav2:
-            if st.button("📋 MGR", use_container_width=True, key="nav_logistics",
+            if st.button("📋 Manager", use_container_width=True, key="nav_logistics",
                         type="primary" if st.session_state.current_page == 'logistics' else "secondary"):
                 st.session_state.current_page = 'logistics'
                 st.rerun()
@@ -142,7 +143,7 @@ def render_sidebar(supabase):
         # Only show chat-related items when on chat page
         if st.session_state.current_page == 'chat':
             # New Chat
-            if st.button("➕ NEW CHAT", use_container_width=True, key="new_chat_btn"):
+            if st.button("+ New Chat", use_container_width=True, key="new_chat_btn"):
                 st.session_state.current_conversation = None
                 st.session_state.messages = []
                 st.rerun()
@@ -150,7 +151,7 @@ def render_sidebar(supabase):
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
             # ===== QUICK IDEAS SECTION =====
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
+            st.markdown('<div class="sidebar-section-title">Quick Ideas</div>', unsafe_allow_html=True)
             
             # Category selector
             qi_categories = {
@@ -214,13 +215,13 @@ def render_sidebar(supabase):
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
             # Chat History
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
+            st.markdown('<div class="sidebar-section-title">Chat History</div>', unsafe_allow_html=True)
             
             conversations = get_coach_conversations(supabase, coach.get('id'))
             if conversations:
-                for conv in conversations[:10]:
-                    title = conv.get('title', 'New Chat')[:30]
-                    if len(conv.get('title', '')) > 30:
+                for conv in conversations[:8]:
+                    title = conv.get('title', 'New Chat')[:25]
+                    if len(conv.get('title', '')) > 25:
                         title += "..."
                     if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
                         st.session_state.current_conversation = conv
@@ -236,31 +237,22 @@ def render_sidebar(supabase):
                         ]
                         st.rerun()
             else:
-                st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
+                st.markdown('<div style="color:var(--text-muted); font-size:0.75rem;">No conversations yet</div>', unsafe_allow_html=True)
             
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
-            # Coaching Staff - Using HTML cards instead of expanders
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
+            # Coaching Staff - Clean card style
+            st.markdown('<div class="sidebar-section-title">Coaching Staff</div>', unsafe_allow_html=True)
             
             for agent in Agent:
                 info = AGENT_INFO[agent]
                 st.markdown(f'''
-                <div class="agent-card" style="
-                    background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(40,40,40,0.6));
-                    border: 1px solid {info["color"]}40;
-                    border-left: 4px solid {info["color"]};
-                    border-radius: 10px;
-                    padding: 0.8rem 1rem;
-                    margin-bottom: 0.5rem;
-                    transition: all 0.3s ease;
-                    cursor: default;
-                ">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <span style="font-size:1.3rem;">{info["icon"]}</span>
+                <div class="agent-card">
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                        <span style="font-size:1rem;">{info["icon"]}</span>
                         <div>
-                            <div style="font-family:'Rajdhani',sans-serif; font-weight:700; color:#FFFFFF; font-size:0.9rem;">{info["name"]}</div>
-                            <div style="color:{info["color"]}; font-size:0.75rem;">{info["specialty"]}</div>
+                            <div style="font-weight:500; color:var(--text-primary); font-size:0.75rem;">{info["name"]}</div>
+                            <div style="color:var(--text-muted); font-size:0.6rem;">{info["specialty"]}</div>
                         </div>
                     </div>
                 </div>
@@ -269,40 +261,42 @@ def render_sidebar(supabase):
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         # Logout
-        if st.button("🚪 LOGOUT", use_container_width=True):
+        if st.button("Logout", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.coach = None
             st.session_state.messages = []
             st.session_state.current_conversation = None
             st.rerun()
         
-        st.markdown('<div class="sidebar-divider"></div><div style="text-align:center; padding:1rem;"><div style="font-family:\'Rajdhani\',sans-serif; color:#666; font-size:0.8rem;">Powered by<br><span style="color:#FF6B35; font-family:\'Orbitron\',monospace;">OpenAI GPT</span></div></div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center; padding:0.5rem;"><div style="color:var(--text-muted); font-size:0.6rem;">Powered by OpenAI</div></div>', unsafe_allow_html=True)
 
 
 def render_header():
-    """Render compact header - only shown when no messages"""
-    # Only show the big header when there are no messages (welcome state)
+    """Render clean header - only shown when no messages"""
     if not st.session_state.messages:
         st.markdown('''
-        <div class="scoreboard" style="padding: 1rem 0; margin-bottom: 0.5rem;">
-            <div class="hero-title" style="font-size: 2rem;">HOOPS AI</div>
-            <div class="hero-subtitle" style="font-size: 0.9rem;">Your Personal Assistant Coach</div>
+        <div class="app-header">
+            <div class="app-logo">HOOPS AI</div>
+            <div class="app-tagline">Your Personal Assistant Coach</div>
         </div>
         ''', unsafe_allow_html=True)
 
 
 def render_welcome():
-    """Render welcome banner - only when no messages"""
+    """Render welcome card - only when no messages"""
     if not st.session_state.messages:
         coach = st.session_state.get('coach', {})
         name = coach.get('name', '').split()[0] if coach.get('name') else ''
         
         st.markdown(f'''
-        <div class="welcome-banner" style="padding: 1rem 1.5rem; margin-bottom: 1rem;">
-            <div class="welcome-title" style="font-size: 1.3rem;">👋 Hey Coach {name}!</div>
-            <div class="welcome-text" style="font-size: 0.9rem;">Your AI coaching staff is ready. Ask anything about basketball strategy, player development, or team management.</div>
-            <div class="welcome-text" style="margin-top:0.5rem; font-size: 0.85rem;">Tailored for: <strong style="color:#FF6B35;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</strong></div>
-            <div class="welcome-text" style="margin-top:0.8rem; font-size:0.8rem; color:#888;">💡 <em>Check out Quick Ideas in the sidebar for instant prompts!</em></div>
+        <div class="welcome-card">
+            <div class="welcome-title">👋 Welcome back, {name}!</div>
+            <div class="welcome-text">
+                Your AI coaching staff is ready to help with strategy, training, and team management.
+            </div>
+            <div class="welcome-text" style="margin-top:0.5rem;">
+                Team: <span class="welcome-highlight">{coach.get("team_name", "")} • {coach.get("age_group", "")} • {coach.get("level", "")}</span>
+            </div>
         </div>
         ''', unsafe_allow_html=True)
 

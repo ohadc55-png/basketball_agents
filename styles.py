@@ -105,9 +105,21 @@ CSS_TEMPLATE = """
         font-size: 12px !important;
     }
     
+    /* Main content - remove dead space, start right after sidebar */
     .main .block-container {
-        max-width: 1100px !important;
-        padding: 0.5rem 1rem !important;
+        max-width: 100% !important;
+        padding: 1rem 2rem 1rem 1rem !important;
+        margin-left: 0 !important;
+    }
+    
+    /* Make main area use full width */
+    .main {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+    }
+    
+    [data-testid="stAppViewContainer"] {
+        margin-left: 0 !important;
     }
     
     /* All text smaller */

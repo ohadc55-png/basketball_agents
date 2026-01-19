@@ -105,13 +105,26 @@ def render_sidebar(supabase):
     coach = st.session_state.get('coach', {})
     
     with st.sidebar:
-        # Logo - new design
-        st.markdown('<div style="text-align:center; padding:0.5rem 0;"><img src="https://i.postimg.cc/g2QPCwqj/עיצוב_ללא_שם.png" style="width:200px; border-radius:8px;"></div>', unsafe_allow_html=True)
+        # Logo
+        st.markdown(f'<div style="text-align:center; padding:1rem 0;"><img src="{LOGO_URL}" style="width:220px; border-radius:10px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Profile - compact
-        st.markdown(f'<div class="profile-card" style="padding:0.3rem 0.5rem; margin:0.3rem 0;"><div style="font-weight:600; color:#FFFFFF; font-size:0.85rem;">{coach.get("name", "Coach")}</div><div style="color:#888; font-size:0.7rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")}</div></div>', unsafe_allow_html=True)
+        # Profile
+        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👤 COACH PROFILE</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="profile-card"><div style="font-weight:700; color:#FFFFFF; font-size:1.1rem;">{coach.get("name", "Coach")}</div><div style="color:#B0B0B0; font-size:0.9rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Navigation - inline
+        # Navigation
+        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">🧭 NAVIGATION</div>', unsafe_allow_html=True)
+        
+        # Initialize current page
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 'chat'
+        
+        # Navigation with custom styling
+        chat_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'chat' else ""
+        manage_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'logistics' else ""
+        
         col_nav1, col_nav2 = st.columns(2)
         with col_nav1:
             if st.button("💬 CHAT", use_container_width=True, key="nav_chat",
@@ -134,8 +147,10 @@ def render_sidebar(supabase):
                 st.session_state.messages = []
                 st.rerun()
             
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+            
             # ===== QUICK IDEAS SECTION =====
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.65rem; margin:0.4rem 0 0.2rem 0; letter-spacing:1px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
             
             # Category selector
             qi_categories = {
@@ -198,14 +213,14 @@ def render_sidebar(supabase):
             
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
-            # Chat History - Show only 3 recent
+            # Chat History
             st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
             
             conversations = get_coach_conversations(supabase, coach.get('id'))
             if conversations:
-                for conv in conversations[:3]:  # Only show 3
-                    title = conv.get('title', 'New Chat')[:20]  # Shorter titles
-                    if len(conv.get('title', '')) > 20:
+                for conv in conversations[:10]:
+                    title = conv.get('title', 'New Chat')[:30]
+                    if len(conv.get('title', '')) > 30:
                         title += "..."
                     if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
                         st.session_state.current_conversation = conv
@@ -221,11 +236,39 @@ def render_sidebar(supabase):
                         ]
                         st.rerun()
             else:
-                st.markdown('<div style="color:#666; font-size:0.75rem;">No conversations yet</div>', unsafe_allow_html=True)
+                st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+            
+            # Coaching Staff - Using HTML cards instead of expanders
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
+            
+            for agent in Agent:
+                info = AGENT_INFO[agent]
+                st.markdown(f'''
+                <div class="agent-card" style="
+                    background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(40,40,40,0.6));
+                    border: 1px solid {info["color"]}40;
+                    border-left: 4px solid {info["color"]};
+                    border-radius: 10px;
+                    padding: 0.8rem 1rem;
+                    margin-bottom: 0.5rem;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:1.3rem;">{info["icon"]}</span>
+                        <div>
+                            <div style="font-family:'Rajdhani',sans-serif; font-weight:700; color:#FFFFFF; font-size:0.9rem;">{info["name"]}</div>
+                            <div style="color:{info["color"]}; font-size:0.75rem;">{info["specialty"]}</div>
+                        </div>
+                    </div>
+                </div>
+                ''', unsafe_allow_html=True)
         
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
-        # Logout - at bottom
+        # Logout
         if st.button("🚪 LOGOUT", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.coach = None
@@ -233,11 +276,7 @@ def render_sidebar(supabase):
             st.session_state.current_conversation = None
             st.rerun()
         
-        # Coaching Staff - compact inline display
-        st.markdown('<div style="text-align:center; padding:0.5rem 0; margin-top:0.5rem;"><span style="font-size:0.6rem; color:#666;">Staff: </span>', unsafe_allow_html=True)
-        staff_icons = " ".join([f'<span title="{AGENT_INFO[a]["name"]}" style="font-size:0.9rem;">{AGENT_INFO[a]["icon"]}</span>' for a in Agent])
-        st.markdown(f'<div style="text-align:center;">{staff_icons}</div>', unsafe_allow_html=True)
-        st.markdown('<div style="text-align:center; padding:0.3rem;"><span style="color:#555; font-size:0.55rem;">Powered by OpenAI</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-divider"></div><div style="text-align:center; padding:1rem;"><div style="font-family:\'Rajdhani\',sans-serif; color:#666; font-size:0.8rem;">Powered by<br><span style="color:#FF6B35; font-family:\'Orbitron\',monospace;">OpenAI GPT</span></div></div>', unsafe_allow_html=True)
 
 
 def render_header():
@@ -396,10 +435,94 @@ def render_chat(client, supabase):
 
 
 def render_mobile_nav(supabase):
-    """Mobile navigation - disabled since all buttons exist in sidebar"""
-    # All navigation buttons (NEW, HISTORY, LOGOUT) are already in the sidebar
-    # This function is kept empty to avoid duplicate buttons
-    pass
+    """Render mobile-only navigation - completely hidden on desktop"""
+    
+    # Inject CSS to hide this entire section on desktop
+    st.markdown('''
+    <style>
+        /* Aggressive hide for mobile nav on desktop */
+        @media screen and (min-width: 768px) {
+            section[data-testid="stSidebar"] ~ div div.mobile-nav-wrapper,
+            .mobile-nav-wrapper,
+            div:has(> .mobile-nav-wrapper) {
+                display: none !important;
+                max-height: 0 !important;
+                overflow: hidden !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+        }
+        
+        /* Show on mobile */
+        @media screen and (max-width: 767px) {
+            .mobile-nav-wrapper {
+                display: block !important;
+            }
+        }
+    </style>
+    ''', unsafe_allow_html=True)
+    
+    # Wrap everything in a div that we can hide
+    st.markdown('<div class="mobile-nav-wrapper">', unsafe_allow_html=True)
+    
+    coach = st.session_state.get('coach', {})
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("➕ NEW", key="mobile_new_btn", use_container_width=True):
+            st.session_state.current_conversation = None
+            st.session_state.messages = []
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    with col2:
+        if st.button("📜 HISTORY", key="mobile_history_btn", use_container_width=True):
+            st.session_state.show_mobile_history = not st.session_state.get('show_mobile_history', False)
+            st.rerun()
+    
+    with col3:
+        if st.button("🚪 LOGOUT", key="mobile_logout_btn", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.coach = None
+            st.session_state.messages = []
+            st.session_state.current_conversation = None
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    # Mobile history panel
+    if st.session_state.get('show_mobile_history', False):
+        st.markdown('<div style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;"><div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
+        
+        conversations = get_coach_conversations(supabase, coach.get('id'))
+        
+        if not conversations:
+            st.markdown('<div style="text-align:center; color:#888; padding:0.5rem;">No previous conversations</div>', unsafe_allow_html=True)
+        else:
+            for conv in conversations[:10]:
+                title = conv.get('title', 'Untitled')[:35]
+                if len(conv.get('title', '')) > 35:
+                    title += "..."
+                if st.button(f"💬 {title}", key=f"mob_conv_{conv['id']}", use_container_width=True):
+                    st.session_state.current_conversation = conv
+                    messages = get_conversation_messages(supabase, conv['id'])
+                    st.session_state.messages = [
+                        {
+                            "role": msg['role'],
+                            "content": msg['content'],
+                            "raw_content": msg['content'],
+                            "agent": msg.get('agent', 'assistant_coach')
+                        }
+                        for msg in messages
+                    ]
+                    st.session_state.show_mobile_history = False
+                    st.rerun()
+        
+        if st.button("❌ CLOSE", key="close_mob_history", use_container_width=True):
+            st.session_state.show_mobile_history = False
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def main():

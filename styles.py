@@ -126,17 +126,39 @@ CSS_TEMPLATE = """
     .stButton > button {
         padding: 0.25rem 0.6rem !important;
         font-size: 0.7rem !important;
-        min-height: 32px !important;
+        min-height: 28px !important;
+        max-height: 36px !important;
         line-height: 1.2 !important;
+        margin: 0 !important;
+    }
+    
+    /* Remove gaps between buttons */
+    .stButton {
+        margin-bottom: 0.15rem !important;
     }
     
     /* Chat history buttons in sidebar */
     [data-testid="stSidebar"] .stButton > button {
         padding: 0.2rem 0.5rem !important;
         font-size: 0.65rem !important;
-        min-height: 28px !important;
-        max-height: 45px !important;
+        min-height: 24px !important;
+        max-height: 32px !important;
         overflow: hidden !important;
+        margin: 0 !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton {
+        margin-bottom: 0.1rem !important;
+    }
+    
+    /* Sidebar vertical blocks - remove extra spacing */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        gap: 0.2rem !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
     /* ===== SIDEBAR COMPACT ===== */
@@ -163,11 +185,16 @@ CSS_TEMPLATE = """
     /* Sidebar selectbox */
     [data-testid="stSidebar"] [data-testid="stSelectbox"] {
         font-size: 0.7rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] > div {
+        margin-bottom: 0 !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div {
-        padding: 0.2rem 0.4rem !important;
-        min-height: 28px !important;
+        padding: 0.15rem 0.4rem !important;
+        min-height: 26px !important;
         font-size: 0.7rem !important;
     }
     

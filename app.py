@@ -105,26 +105,16 @@ def render_sidebar(supabase):
     coach = st.session_state.get('coach', {})
     
     with st.sidebar:
-        # Logo
-        st.markdown(f'<div style="text-align:center; padding:1rem 0;"><img src="{LOGO_URL}" style="width:220px; border-radius:10px;"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        # Logo - new URL
+        st.markdown('<div style="text-align:center; padding:0.5rem 0;"><img src="https://i.postimg.cc/g2QPCwqj/עיצוב_ללא_שם.png" style="width:180px; border-radius:10px;"></div>', unsafe_allow_html=True)
         
-        # Profile
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👤 COACH PROFILE</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="profile-card"><div style="font-weight:700; color:#FFFFFF; font-size:1.1rem;">{coach.get("name", "Coach")}</div><div style="color:#B0B0B0; font-size:0.9rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div></div>', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+        # Profile - simple
+        st.markdown(f'''<div style="background:rgba(30,30,30,0.6); border:1px solid #FF6B3540; border-radius:8px; padding:0.5rem; margin:0.3rem 0;">
+            <div style="font-weight:600; color:#FFF; font-size:0.9rem;">{coach.get("name", "Coach")}</div>
+            <div style="color:#888; font-size:0.75rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div>
+        </div>''', unsafe_allow_html=True)
         
-        # Navigation
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">🧭 NAVIGATION</div>', unsafe_allow_html=True)
-        
-        # Initialize current page
-        if 'current_page' not in st.session_state:
-            st.session_state.current_page = 'chat'
-        
-        # Navigation with custom styling
-        chat_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'chat' else ""
-        manage_active = "background: linear-gradient(135deg, #FF6B35, #FF8C42) !important; color: #000 !important;" if st.session_state.current_page == 'logistics' else ""
-        
+        # Navigation buttons
         col_nav1, col_nav2 = st.columns(2)
         with col_nav1:
             if st.button("💬 CHAT", use_container_width=True, key="nav_chat",
@@ -137,24 +127,17 @@ def render_sidebar(supabase):
                 st.session_state.current_page = 'logistics'
                 st.rerun()
         
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-        
         # Only show chat-related items when on chat page
         if st.session_state.current_page == 'chat':
-            # New Chat
+            # New Chat button
             if st.button("➕ NEW CHAT", use_container_width=True, key="new_chat_btn"):
                 st.session_state.current_conversation = None
                 st.session_state.messages = []
                 st.rerun()
             
-            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-            
-            # ===== QUICK IDEAS SECTION =====
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
-            
-            # Category selector
+            # Quick Ideas - selectbox
             qi_categories = {
-                "Select category...": [],
+                "💡 Quick Ideas...": [],
                 "🏀 Offense": [
                     ("Motion offense basics", "Explain motion offense basics and give me 3 simple actions to start with."),
                     ("Pick & Roll variations", "Show me different pick and roll variations and when to use each one."),
@@ -197,30 +180,27 @@ def render_sidebar(supabase):
             }
             
             selected_category = st.selectbox(
-                "Choose a topic:",
+                "Quick Ideas",
                 options=list(qi_categories.keys()),
                 key="qi_category_select",
                 label_visibility="collapsed"
             )
             
             # Show buttons for selected category
-            if selected_category and selected_category != "Select category...":
+            if selected_category and selected_category != "💡 Quick Ideas...":
                 prompts = qi_categories[selected_category]
                 for i, (label, prompt) in enumerate(prompts):
                     if st.button(f"▸ {label}", key=f"qi_btn_{selected_category}_{i}", use_container_width=True):
                         st.session_state.pending_prompt = prompt
                         st.rerun()
             
-            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-            
-            # Chat History
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
-            
+            # Chat History - max 5
             conversations = get_coach_conversations(supabase, coach.get('id'))
             if conversations:
-                for conv in conversations[:10]:
-                    title = conv.get('title', 'New Chat')[:30]
-                    if len(conv.get('title', '')) > 30:
+                st.markdown('<div style="color:#FF6B35; font-size:0.7rem; margin:0.5rem 0 0.2rem 0;">📜 Recent Chats</div>', unsafe_allow_html=True)
+                for conv in conversations[:5]:
+                    title = conv.get('title', 'New Chat')[:25]
+                    if len(conv.get('title', '')) > 25:
                         title += "..."
                     if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
                         st.session_state.current_conversation = conv
@@ -235,40 +215,19 @@ def render_sidebar(supabase):
                             for m in msgs
                         ]
                         st.rerun()
-            else:
-                st.markdown('<div style="color:#666; font-size:0.85rem;">No conversations yet</div>', unsafe_allow_html=True)
             
-            st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-            
-            # Coaching Staff - Using HTML cards instead of expanders
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
+            # Coaching Staff - compact
+            st.markdown('<div style="color:#FF6B35; font-size:0.7rem; margin:0.5rem 0 0.2rem 0;">👥 Coaching Staff</div>', unsafe_allow_html=True)
             
             for agent in Agent:
                 info = AGENT_INFO[agent]
-                st.markdown(f'''
-                <div class="agent-card" style="
-                    background: linear-gradient(135deg, rgba(30,30,30,0.8), rgba(40,40,40,0.6));
-                    border: 1px solid {info["color"]}40;
-                    border-left: 4px solid {info["color"]};
-                    border-radius: 10px;
-                    padding: 0.8rem 1rem;
-                    margin-bottom: 0.5rem;
-                    transition: all 0.3s ease;
-                    cursor: default;
-                ">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <span style="font-size:1.3rem;">{info["icon"]}</span>
-                        <div>
-                            <div style="font-family:'Rajdhani',sans-serif; font-weight:700; color:#FFFFFF; font-size:0.9rem;">{info["name"]}</div>
-                            <div style="color:{info["color"]}; font-size:0.75rem;">{info["specialty"]}</div>
-                        </div>
-                    </div>
-                </div>
-                ''', unsafe_allow_html=True)
+                st.markdown(f'''<div style="border-left:3px solid {info["color"]}; padding:0.2rem 0 0.2rem 0.5rem; margin:0.15rem 0;">
+                    <span style="font-size:0.75rem; color:#FFF;">{info["icon"]} {info["name"]}</span><br>
+                    <span style="font-size:0.65rem; color:#888;">{info["specialty"]}</span>
+                </div>''', unsafe_allow_html=True)
         
-        st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-        
-        # Logout
+        # Logout button
+        st.markdown('<div style="margin-top:0.5rem;"></div>', unsafe_allow_html=True)
         if st.button("🚪 LOGOUT", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.coach = None
@@ -276,7 +235,8 @@ def render_sidebar(supabase):
             st.session_state.current_conversation = None
             st.rerun()
         
-        st.markdown('<div class="sidebar-divider"></div><div style="text-align:center; padding:1rem;"><div style="font-family:\'Rajdhani\',sans-serif; color:#666; font-size:0.8rem;">Powered by<br><span style="color:#FF6B35; font-family:\'Orbitron\',monospace;">OpenAI GPT</span></div></div>', unsafe_allow_html=True)
+        # Footer
+        st.markdown('<div style="text-align:center; padding:0.5rem 0; color:#555; font-size:0.6rem;">Powered by OpenAI</div>', unsafe_allow_html=True)
 
 
 def render_header():

@@ -109,8 +109,12 @@ def render_sidebar(supabase):
         st.image("https://i.postimg.cc/g2QPCwqj/עיצוב_ללא_שם.png", width=180)
         
         # ========== PROFILE ==========
-        st.caption(f"**{coach.get('name', 'Coach')}**")
-        st.caption(f"{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}")
+        st.markdown(f"""
+        <div style="padding: 8px 0;">
+            <div style="font-size: 16px; font-weight: 600; color: #FFF;">{coach.get('name', 'Coach')}</div>
+            <div style="font-size: 13px; color: #999;">{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}</div>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.divider()
         
@@ -185,7 +189,7 @@ def render_sidebar(supabase):
             st.divider()
             
             # ========== CHAT HISTORY (3 only) ==========
-            st.caption("📜 Recent Chats")
+            st.markdown('<div style="font-size: 14px; color: #FF6B35; margin-bottom: 8px;">📜 Recent Chats</div>', unsafe_allow_html=True)
             conversations = get_coach_conversations(supabase, coach.get('id'))
             if conversations:
                 for conv in conversations[:3]:
@@ -201,17 +205,17 @@ def render_sidebar(supabase):
                         ]
                         st.rerun()
             else:
-                st.caption("No chats yet")
+                st.markdown('<div style="font-size: 12px; color: #666;">No chats yet</div>', unsafe_allow_html=True)
             
             st.divider()
             
-            # ========== COACHING STAFF ==========
-            st.caption("👥 Coaching Staff")
+            # ========== COACHING STAFF - CARDS ==========
+            st.markdown('<div style="font-size: 14px; color: #FF6B35; margin-bottom: 8px;">👥 Coaching Staff</div>', unsafe_allow_html=True)
             
             staff_data = [
                 ("🎯", "Assistant Coach", "Strategy", "#FF6B35"),
                 ("📋", "Team Manager", "Logistics", "#9B59B6"),
-                ("📋", "Tactician", "X's & O's", "#00D4FF"),
+                ("🎯", "Tactician", "X's & O's", "#00D4FF"),
                 ("💪", "Skills Coach", "Drills", "#00FF87"),
                 ("🥗", "Nutritionist", "Diet", "#FFD700"),
                 ("🏋️", "Strength Coach", "Fitness", "#FF4500"),
@@ -219,12 +223,24 @@ def render_sidebar(supabase):
                 ("👶", "Youth Coach", "Kids", "#FF69B4"),
             ]
             
+            # Create coach cards in HTML
+            coaches_html = ""
             for icon, name, spec, color in staff_data:
-                st.markdown(f'''<div style="display:flex; align-items:center; padding:4px 0; border-left:3px solid {color}; padding-left:8px; margin:2px 0;">
-                    <span style="font-size:14px;">{icon}</span>
-                    <span style="font-size:12px; color:#fff; margin-left:6px;">{name}</span>
-                    <span style="font-size:10px; color:#888; margin-left:4px;">• {spec}</span>
-                </div>''', unsafe_allow_html=True)
+                coaches_html += f'''
+                <div style="
+                    background: rgba(30,30,30,0.8);
+                    border: 1px solid {color}50;
+                    border-left: 4px solid {color};
+                    border-radius: 6px;
+                    padding: 6px 10px;
+                    margin-bottom: 6px;
+                ">
+                    <div style="font-size: 13px; color: #FFF;">{icon} {name}</div>
+                    <div style="font-size: 11px; color: #888;">{spec}</div>
+                </div>
+                '''
+            
+            st.markdown(coaches_html, unsafe_allow_html=True)
         
         st.divider()
         
@@ -236,7 +252,7 @@ def render_sidebar(supabase):
             st.session_state.current_conversation = None
             st.rerun()
         
-        st.caption("Powered by OpenAI")
+        st.markdown('<div style="text-align: center; font-size: 11px; color: #555; padding: 8px 0;">Powered by OpenAI</div>', unsafe_allow_html=True)
 
 
 def render_header():

@@ -101,133 +101,134 @@ def render_login_page(supabase):
 
 
 def render_sidebar(supabase):
-    """Render sidebar with logo, profile, and navigation"""
+    """Render clean sidebar"""
     coach = st.session_state.get('coach', {})
     
     with st.sidebar:
-        # Logo - new URL
-        st.markdown('<div style="text-align:center; padding:0.5rem 0;"><img src="https://i.postimg.cc/g2QPCwqj/עיצוב_ללא_שם.png" style="width:180px; border-radius:10px;"></div>', unsafe_allow_html=True)
+        # ========== LOGO ==========
+        st.image("https://i.postimg.cc/g2QPCwqj/עיצוב_ללא_שם.png", width=180)
         
-        # Profile - simple
-        st.markdown(f'''<div style="background:rgba(30,30,30,0.6); border:1px solid #FF6B3540; border-radius:8px; padding:0.5rem; margin:0.3rem 0;">
-            <div style="font-weight:600; color:#FFF; font-size:0.9rem;">{coach.get("name", "Coach")}</div>
-            <div style="color:#888; font-size:0.75rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div>
-        </div>''', unsafe_allow_html=True)
+        # ========== PROFILE ==========
+        st.caption(f"**{coach.get('name', 'Coach')}**")
+        st.caption(f"{coach.get('team_name', '')} | {coach.get('age_group', '')} | {coach.get('level', '')}")
         
-        # Navigation buttons
-        col_nav1, col_nav2 = st.columns(2)
-        with col_nav1:
+        st.divider()
+        
+        # ========== NAVIGATION ==========
+        col1, col2 = st.columns(2)
+        with col1:
             if st.button("💬 CHAT", use_container_width=True, key="nav_chat",
                         type="primary" if st.session_state.current_page == 'chat' else "secondary"):
                 st.session_state.current_page = 'chat'
                 st.rerun()
-        with col_nav2:
+        with col2:
             if st.button("📋 MGR", use_container_width=True, key="nav_logistics",
                         type="primary" if st.session_state.current_page == 'logistics' else "secondary"):
                 st.session_state.current_page = 'logistics'
                 st.rerun()
         
-        # Only show chat-related items when on chat page
+        # ========== CHAT PAGE CONTENT ==========
         if st.session_state.current_page == 'chat':
-            # New Chat button
+            
+            # New Chat
             if st.button("➕ NEW CHAT", use_container_width=True, key="new_chat_btn"):
                 st.session_state.current_conversation = None
                 st.session_state.messages = []
                 st.rerun()
             
-            # Quick Ideas - selectbox
-            qi_categories = {
+            st.divider()
+            
+            # ========== QUICK IDEAS ==========
+            qi_options = {
                 "💡 Quick Ideas...": [],
                 "🏀 Offense": [
-                    ("Motion offense basics", "Explain motion offense basics and give me 3 simple actions to start with."),
-                    ("Pick & Roll variations", "Show me different pick and roll variations and when to use each one."),
-                    ("Beat 2-3 zone", "How should we attack a 2-3 zone defense? Give me specific actions and player movements."),
-                    ("End of game plays", "Give me 3 effective end-of-game plays for different situations (need 3, need 2, etc).")
+                    ("Motion offense", "Explain motion offense basics and give me 3 simple actions."),
+                    ("Pick & Roll", "Show me different pick and roll variations."),
+                    ("Beat zone", "How to attack a 2-3 zone defense?"),
                 ],
                 "🛡️ Defense": [
-                    ("Man-to-man principles", "What are the key principles of man-to-man defense I should teach my team?"),
-                    ("Zone defense setup", "How do I set up a 2-3 zone defense? Explain rotations and responsibilities."),
-                    ("Press break strategies", "How do we break full-court press? Give me formation and movement options."),
-                    ("Defending pick & roll", "What are the different ways to defend pick and roll? When should I use each?")
+                    ("Man-to-man", "Key principles of man-to-man defense."),
+                    ("Zone setup", "How to set up a 2-3 zone defense?"),
+                    ("Press break", "How to break full-court press?"),
                 ],
                 "💪 Fitness": [
-                    ("Pre-game warmup", "Create a 15-minute pre-game warmup routine for my team."),
-                    ("Weekly strength program", "Design a weekly strength and conditioning program for basketball players."),
-                    ("Injury prevention", "What exercises should we do to prevent common basketball injuries?"),
-                    ("In-season conditioning", "How do I maintain fitness during the season without overtraining?")
+                    ("Warmup routine", "Create a 15-minute pre-game warmup."),
+                    ("Strength program", "Weekly strength program for players."),
                 ],
                 "🧠 Mental": [
-                    ("Pre-game team talk", "Help me structure an effective pre-game team talk."),
-                    ("Building confidence", "How do I build confidence in a player who is struggling?"),
-                    ("Handling pressure", "How do I teach my players to perform better under pressure?"),
-                    ("Team chemistry", "What activities and approaches help build team chemistry?")
+                    ("Team talk", "Help me structure a pre-game team talk."),
+                    ("Build confidence", "How to build player confidence?"),
                 ],
                 "📊 Analytics": [
-                    ("Analyze player stats", "I want to analyze a player's performance. What statistics should I provide you?"),
-                    ("Team performance review", "Help me do a team performance review. What data do you need from me?"),
-                    ("Key metrics explained", "Explain the most important basketball analytics metrics I should track.")
+                    ("Player stats", "What statistics should I track?"),
+                    ("Team review", "Help with team performance review."),
                 ],
-                "👶 Youth (5-12)": [
-                    ("Fun drills for kids", "Give me fun and engaging basketball games and drills for kids ages 6-10."),
-                    ("Teaching fundamentals", "How do I teach basketball fundamentals to young kids in a fun way?"),
-                    ("Age-appropriate plays", "What simple plays work best for youth basketball teams?")
+                "👶 Youth": [
+                    ("Fun drills", "Fun drills for kids ages 6-10."),
+                    ("Fundamentals", "Teaching fundamentals to young kids."),
                 ],
                 "🍎 Nutrition": [
-                    ("Build meal plan", "I want to create a nutrition plan for my player. Please ask me the relevant questions to build a personalized meal plan."),
-                    ("Game day nutrition", "What should players eat before, during, and after games?"),
-                    ("Hydration guide", "Create a hydration guide for basketball players during practice and games.")
-                ]
+                    ("Meal plan", "Create a nutrition plan for my player."),
+                    ("Game day food", "What to eat before/after games?"),
+                ],
             }
             
-            selected_category = st.selectbox(
-                "Quick Ideas",
-                options=list(qi_categories.keys()),
-                key="qi_category_select",
-                label_visibility="collapsed"
-            )
+            selected = st.selectbox("Quick Ideas", list(qi_options.keys()), 
+                                   key="qi_select", label_visibility="collapsed")
             
-            # Show buttons for selected category
-            if selected_category and selected_category != "💡 Quick Ideas...":
-                prompts = qi_categories[selected_category]
-                for i, (label, prompt) in enumerate(prompts):
-                    if st.button(f"▸ {label}", key=f"qi_btn_{selected_category}_{i}", use_container_width=True):
+            if selected != "💡 Quick Ideas...":
+                for label, prompt in qi_options[selected]:
+                    if st.button(f"▸ {label}", key=f"qi_{label}", use_container_width=True):
                         st.session_state.pending_prompt = prompt
                         st.rerun()
             
-            # Chat History - max 5
+            st.divider()
+            
+            # ========== CHAT HISTORY (3 only) ==========
+            st.caption("📜 Recent Chats")
             conversations = get_coach_conversations(supabase, coach.get('id'))
             if conversations:
-                st.markdown('<div style="color:#FF6B35; font-size:0.7rem; margin:0.5rem 0 0.2rem 0;">📜 Recent Chats</div>', unsafe_allow_html=True)
-                for conv in conversations[:5]:
-                    title = conv.get('title', 'New Chat')[:25]
-                    if len(conv.get('title', '')) > 25:
-                        title += "..."
+                for conv in conversations[:3]:
+                    title = conv.get('title', 'Chat')[:22] + "..." if len(conv.get('title', '')) > 22 else conv.get('title', 'Chat')
                     if st.button(f"💬 {title}", key=f"conv_{conv['id']}", use_container_width=True):
                         st.session_state.current_conversation = conv
                         msgs = get_conversation_messages(supabase, conv['id'])
                         st.session_state.messages = [
-                            {
-                                "role": m['role'],
-                                "content": m['content'],
-                                "raw_content": m['content'].split('\n\n', 1)[-1] if '\n\n' in m['content'] else m['content'],
-                                "agent": m.get('agent')
-                            }
+                            {"role": m['role'], "content": m['content'],
+                             "raw_content": m['content'].split('\n\n', 1)[-1] if '\n\n' in m['content'] else m['content'],
+                             "agent": m.get('agent')}
                             for m in msgs
                         ]
                         st.rerun()
+            else:
+                st.caption("No chats yet")
             
-            # Coaching Staff - compact
-            st.markdown('<div style="color:#FF6B35; font-size:0.7rem; margin:0.5rem 0 0.2rem 0;">👥 Coaching Staff</div>', unsafe_allow_html=True)
+            st.divider()
             
-            for agent in Agent:
-                info = AGENT_INFO[agent]
-                st.markdown(f'''<div style="border-left:3px solid {info["color"]}; padding:0.2rem 0 0.2rem 0.5rem; margin:0.15rem 0;">
-                    <span style="font-size:0.75rem; color:#FFF;">{info["icon"]} {info["name"]}</span><br>
-                    <span style="font-size:0.65rem; color:#888;">{info["specialty"]}</span>
+            # ========== COACHING STAFF ==========
+            st.caption("👥 Coaching Staff")
+            
+            staff_data = [
+                ("🎯", "Assistant Coach", "Strategy", "#FF6B35"),
+                ("📋", "Team Manager", "Logistics", "#9B59B6"),
+                ("📋", "Tactician", "X's & O's", "#00D4FF"),
+                ("💪", "Skills Coach", "Drills", "#00FF87"),
+                ("🥗", "Nutritionist", "Diet", "#FFD700"),
+                ("🏋️", "Strength Coach", "Fitness", "#FF4500"),
+                ("📊", "Analyst", "Stats", "#9370DB"),
+                ("👶", "Youth Coach", "Kids", "#FF69B4"),
+            ]
+            
+            for icon, name, spec, color in staff_data:
+                st.markdown(f'''<div style="display:flex; align-items:center; padding:4px 0; border-left:3px solid {color}; padding-left:8px; margin:2px 0;">
+                    <span style="font-size:14px;">{icon}</span>
+                    <span style="font-size:12px; color:#fff; margin-left:6px;">{name}</span>
+                    <span style="font-size:10px; color:#888; margin-left:4px;">• {spec}</span>
                 </div>''', unsafe_allow_html=True)
         
-        # Logout button
-        st.markdown('<div style="margin-top:0.5rem;"></div>', unsafe_allow_html=True)
+        st.divider()
+        
+        # ========== LOGOUT ==========
         if st.button("🚪 LOGOUT", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.coach = None
@@ -235,8 +236,7 @@ def render_sidebar(supabase):
             st.session_state.current_conversation = None
             st.rerun()
         
-        # Footer
-        st.markdown('<div style="text-align:center; padding:0.5rem 0; color:#555; font-size:0.6rem;">Powered by OpenAI</div>', unsafe_allow_html=True)
+        st.caption("Powered by OpenAI")
 
 
 def render_header():

@@ -110,12 +110,12 @@ def render_sidebar(supabase):
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         # Profile
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">👤 COACH PROFILE</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👤 COACH PROFILE</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="profile-card"><div style="font-weight:700; color:#FFFFFF; font-size:1.1rem;">{coach.get("name", "Coach")}</div><div style="color:#B0B0B0; font-size:0.9rem;">{coach.get("team_name", "")} | {coach.get("age_group", "")} | {coach.get("level", "")}</div></div>', unsafe_allow_html=True)
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         
         # Navigation
-        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:0.5rem; letter-spacing:2px;">🧭 NAVIGATION</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">🧭 NAVIGATION</div>', unsafe_allow_html=True)
         
         # Initialize current page
         if 'current_page' not in st.session_state:
@@ -150,7 +150,7 @@ def render_sidebar(supabase):
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
             # ===== QUICK IDEAS SECTION =====
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.8rem; margin-bottom:0.5rem; letter-spacing:2px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">💡 QUICK IDEAS</div>', unsafe_allow_html=True)
             
             # Category selector
             qi_categories = {
@@ -214,7 +214,7 @@ def render_sidebar(supabase):
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
             # Chat History
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
             
             conversations = get_coach_conversations(supabase, coach.get('id'))
             if conversations:
@@ -241,7 +241,7 @@ def render_sidebar(supabase):
             st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
             
             # Coaching Staff - Using HTML cards instead of expanders
-            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.9rem; margin-bottom:1rem; letter-spacing:2px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:0.7rem; margin-bottom:0.3rem; letter-spacing:1px;">👥 COACHING STAFF</div>', unsafe_allow_html=True)
             
             for agent in Agent:
                 info = AGENT_INFO[agent]

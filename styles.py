@@ -153,12 +153,27 @@ CSS_TEMPLATE = """
     
     /* Sidebar vertical blocks - remove extra spacing */
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.2rem !important;
+        gap: 0.15rem !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
         padding: 0 !important;
         margin: 0 !important;
+    }
+    
+    /* Fix column gaps in sidebar */
+    [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+        gap: 0.3rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    
+    /* Fix empty space issue - target column containers */
+    [data-testid="stSidebar"] [data-testid="column"] {
+        padding: 0 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stElementContainer"] {
+        margin-bottom: 0 !important;
     }
     
     /* ===== SIDEBAR COMPACT ===== */
@@ -277,7 +292,9 @@ CSS_TEMPLATE = """
     
     /* ===== DIVIDERS SMALLER ===== */
     .sidebar-divider {
-        margin: 0.4rem 0 !important;
+        margin: 0.2rem 0 !important;
+        height: 1px !important;
+        opacity: 0.3 !important;
     }
     
     /* Mobile nav hide on desktop */

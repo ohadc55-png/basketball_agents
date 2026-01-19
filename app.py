@@ -435,94 +435,10 @@ def render_chat(client, supabase):
 
 
 def render_mobile_nav(supabase):
-    """Render mobile-only navigation - completely hidden on desktop"""
-    
-    # Inject CSS to hide this entire section on desktop
-    st.markdown('''
-    <style>
-        /* Aggressive hide for mobile nav on desktop */
-        @media screen and (min-width: 768px) {
-            section[data-testid="stSidebar"] ~ div div.mobile-nav-wrapper,
-            .mobile-nav-wrapper,
-            div:has(> .mobile-nav-wrapper) {
-                display: none !important;
-                max-height: 0 !important;
-                overflow: hidden !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-        }
-        
-        /* Show on mobile */
-        @media screen and (max-width: 767px) {
-            .mobile-nav-wrapper {
-                display: block !important;
-            }
-        }
-    </style>
-    ''', unsafe_allow_html=True)
-    
-    # Wrap everything in a div that we can hide
-    st.markdown('<div class="mobile-nav-wrapper">', unsafe_allow_html=True)
-    
-    coach = st.session_state.get('coach', {})
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("➕ NEW", key="mobile_new_btn", use_container_width=True):
-            st.session_state.current_conversation = None
-            st.session_state.messages = []
-            st.session_state.show_mobile_history = False
-            st.rerun()
-    
-    with col2:
-        if st.button("📜 HISTORY", key="mobile_history_btn", use_container_width=True):
-            st.session_state.show_mobile_history = not st.session_state.get('show_mobile_history', False)
-            st.rerun()
-    
-    with col3:
-        if st.button("🚪 LOGOUT", key="mobile_logout_btn", use_container_width=True):
-            st.session_state.logged_in = False
-            st.session_state.coach = None
-            st.session_state.messages = []
-            st.session_state.current_conversation = None
-            st.session_state.show_mobile_history = False
-            st.rerun()
-    
-    # Mobile history panel
-    if st.session_state.get('show_mobile_history', False):
-        st.markdown('<div style="background: rgba(20,20,20,0.95); border: 2px solid #FF6B35; border-radius: 15px; padding: 1rem; margin: 0.5rem 0;"><div style="font-family:\'Orbitron\',monospace; color:#FF6B35; font-size:1rem; margin-bottom:0.5rem; text-align:center;">📜 CHAT HISTORY</div>', unsafe_allow_html=True)
-        
-        conversations = get_coach_conversations(supabase, coach.get('id'))
-        
-        if not conversations:
-            st.markdown('<div style="text-align:center; color:#888; padding:0.5rem;">No previous conversations</div>', unsafe_allow_html=True)
-        else:
-            for conv in conversations[:10]:
-                title = conv.get('title', 'Untitled')[:35]
-                if len(conv.get('title', '')) > 35:
-                    title += "..."
-                if st.button(f"💬 {title}", key=f"mob_conv_{conv['id']}", use_container_width=True):
-                    st.session_state.current_conversation = conv
-                    messages = get_conversation_messages(supabase, conv['id'])
-                    st.session_state.messages = [
-                        {
-                            "role": msg['role'],
-                            "content": msg['content'],
-                            "raw_content": msg['content'],
-                            "agent": msg.get('agent', 'assistant_coach')
-                        }
-                        for msg in messages
-                    ]
-                    st.session_state.show_mobile_history = False
-                    st.rerun()
-        
-        if st.button("❌ CLOSE", key="close_mob_history", use_container_width=True):
-            st.session_state.show_mobile_history = False
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    """Mobile navigation - disabled since all buttons exist in sidebar"""
+    # All navigation buttons (NEW, HISTORY, LOGOUT) are already in the sidebar
+    # This function is kept empty to avoid duplicate buttons
+    pass
 
 
 def main():

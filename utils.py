@@ -131,6 +131,197 @@ def update_conversation_title(supabase, conversation_id, title):
         pass
 
 # ============================================================================
+# DATABASE FUNCTIONS - COACH MEMORIES
+# ============================================================================
+
+# Triggers for auto-saving memories
+MEMORY_TRIGGERS = {
+    "time_based": [
+        "לאימון", "מחר", "השבוע", "בשבוע הבא", "ביום", "לפני המשחק", "אחרי המשחק",
+        "tomorrow", "next week", "for practice", "for the game", "this week", "next practice"
+    ],
+    "player_related": [
+        "השחקן", "שחקן מספר", "הילד", "הבן שלי", "player", "my son", "my kid", "the player"
+    ],
+    "issues": [
+        "מתקשה", "בעיה", "לא מצליח", "קושי", "חולשה", "צריך לשפר",
+        "struggling", "problem", "issue", "weakness", "needs to improve", "difficulty"
+    ],
+    "goals": [
+        "המטרה", "היעד", "רוצה להשיג", "לשפר", "goal", "objective", "want to achieve", "improve"
+    ],
+    "plans": [
+        "תוכנית", "אסטרטגיה", "תכנון", "plan", "strategy", "program", "schedule"
+    ],
+    "positive_feedback": [
+        "תודה", "מעולה", "בדיוק מה שצריך", "אשמור", "אני הולך ליישם",
+        "thanks", "perfect", "exactly what I needed", "I'll use this", "great idea"
+    ]
+}
+
+def get_coach_memories(supabase, coach_id, limit=10):
+    """Get recent memories for a coach"""
+    try:
+        result = supabase.table("coach_memories")\
+            .select("*")\
+            .eq("coach_id", coach_id)\
+            .eq("status", "active")\
+            .order("created_at", desc=True)\
+            .limit(limit)\
+            .execute()
+        return result.data or []
+    except Exception as e:
+        print(f"Error getting memories: {e}")
+        return []
+
+def save_memory(supabase, coach_id, category, title, content, conversation_id=None, importance=1):
+    """Save a new memory for a coach"""
+    try:
+        data = {
+            "coach_id": coach_id,
+            "category": category,
+            "title": title[:100] if title else "Memory",
+            "content": content[:500] if content else "",
+            "importance": importance,
+            "status": "active"
+        }
+        if conversation_id:
+            data["conversation_id"] = conversation_id
+        
+        result = supabase.table("coach_memories").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error saving memory: {e}")
+        return None
+
+def detect_memory_triggers(user_message, ai_response):
+    """Detect if conversation should be saved to memory"""
+    text_to_check = (user_message + " " + ai_response).lower()
+    
+    detected_triggers = []
+    
+    for trigger_type, keywords in MEMORY_TRIGGERS.items():
+        for keyword in keywords:
+            if keyword.lower() in text_to_check:
+                detected_triggers.append(trigger_type)
+                break
+    
+    return list(set(detected_triggers))
+
+def is_exceptional_conversation(user_message, ai_response, message_count=1):
+    """Check if conversation is exceptional and should be saved"""
+    # Long response (detailed answer)
+    if len(ai_response.split()) > 300:
+        return True, "long_response"
+    
+    # Multiple back-and-forth (engaged conversation)
+    if message_count > 4:
+        return True, "engaged_conversation"
+    
+    # Response contains a list/plan (structured content)
+    list_indicators = ["1.", "2.", "3.", "א.", "ב.", "•", "-  "]
+    if sum(1 for ind in list_indicators if ind in ai_response) >= 3:
+        return True, "structured_plan"
+    
+    return False, None
+
+def extract_memory_title(user_message, category):
+    """Extract a short title from the user's message"""
+    # Take first 50 chars or first sentence
+    title = user_message[:80]
+    if "?" in title:
+        title = title.split("?")[0] + "?"
+    elif "." in title:
+        title = title.split(".")[0]
+    
+    # Add category prefix
+    category_prefixes = {
+        "drill": "🏀 ",
+        "issue": "⚠️ ",
+        "goal": "🎯 ",
+        "player": "👤 ",
+        "tactic": "📋 ",
+        "plan": "📅 ",
+        "general": "💡 "
+    }
+    prefix = category_prefixes.get(category, "💡 ")
+    
+    return prefix + title.strip()
+
+def determine_memory_category(triggers, user_message):
+    """Determine the category of memory based on triggers"""
+    if "player_related" in triggers:
+        return "player"
+    elif "issues" in triggers:
+        return "issue"
+    elif "goals" in triggers:
+        return "goal"
+    elif "plans" in triggers or "time_based" in triggers:
+        return "plan"
+    elif any(word in user_message.lower() for word in ["תרגיל", "drill", "exercise"]):
+        return "drill"
+    elif any(word in user_message.lower() for word in ["טקטיקה", "משחק", "הגנה", "התקפה", "tactic", "offense", "defense"]):
+        return "tactic"
+    else:
+        return "general"
+
+def process_memory_save(supabase, coach_id, user_message, ai_response, conversation_id=None, message_count=1):
+    """Main function to decide if and what to save to memory"""
+    # Check triggers
+    triggers = detect_memory_triggers(user_message, ai_response)
+    
+    # Check if exceptional
+    is_exceptional, exception_type = is_exceptional_conversation(user_message, ai_response, message_count)
+    
+    # Decide if we should save
+    should_save = len(triggers) > 0 or is_exceptional
+    
+    if not should_save:
+        return None
+    
+    # Determine category and importance
+    category = determine_memory_category(triggers, user_message)
+    importance = 2 if is_exceptional or len(triggers) > 1 else 1
+    
+    # Create title and content
+    title = extract_memory_title(user_message, category)
+    
+    # Content is a summary: user question + key part of response
+    response_summary = ai_response[:300] + "..." if len(ai_response) > 300 else ai_response
+    content = f"שאלה: {user_message[:150]}\n\nתשובה: {response_summary}"
+    
+    # Save to database
+    memory = save_memory(supabase, coach_id, category, title, content, conversation_id, importance)
+    
+    return memory
+
+def build_memory_context(memories):
+    """Build context string from memories for system prompt"""
+    if not memories:
+        return ""
+    
+    context = "\n\n=== COACH'S HISTORY - IMPORTANT CONTEXT ===\n"
+    context += "The following are previous conversations and plans with this coach. Use this context to provide continuity:\n\n"
+    
+    for i, mem in enumerate(memories[:10], 1):
+        created = mem.get('created_at', '')[:10]  # Just the date
+        category = mem.get('category', 'general')
+        title = mem.get('title', 'Memory')
+        content = mem.get('content', '')[:200]
+        
+        context += f"{i}. [{created}] {title}\n"
+        context += f"   {content}\n\n"
+    
+    context += "=== END OF HISTORY ===\n"
+    context += "Use this history to:\n"
+    context += "- Reference previous conversations when relevant\n"
+    context += "- Ask about progress on previous plans/drills\n"
+    context += "- Maintain continuity in coaching relationship\n"
+    context += "- But don't force it - only mention if naturally relevant\n\n"
+    
+    return context
+
+# ============================================================================
 # DATABASE FUNCTIONS - DOCUMENTS (RAG)
 # ============================================================================
 def get_agent_documents(supabase, agent_name):
@@ -252,9 +443,16 @@ def route_question(question, client, chat_history=None):
 # AGENT RESPONSE
 # ============================================================================
 def get_agent_response(question, agent, chat_history, client, coach_profile=None, supabase=None, image_data=None):
-    """Get response from specific agent with RAG knowledge and optional image"""
+    """Get response from specific agent with RAG knowledge, memories, and optional image"""
     try:
         system_prompt = get_system_prompt(agent, coach_profile)
+        
+        # Add coach memories for context
+        if supabase and coach_profile:
+            memories = get_coach_memories(supabase, coach_profile.get('id'), limit=10)
+            if memories:
+                memory_context = build_memory_context(memories)
+                system_prompt += memory_context
         
         # Add RAG knowledge
         if supabase:
@@ -595,4 +793,3 @@ def get_logistics_context(supabase, coach_id):
     context += "\n=== END LOGISTICS DATA ===\n"
     
     return context
-

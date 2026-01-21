@@ -20,7 +20,8 @@ from utils import (
     save_message, get_conversation_messages,
     route_question, get_agent_response,
     format_response, get_agent_from_value,
-    read_uploaded_file, build_analysis_prompt
+    read_uploaded_file, build_analysis_prompt,
+    process_memory_save
 )
 from logistics import render_logistics_page
 from analytics_viz import display_analytics, extract_stats_from_text
@@ -400,6 +401,12 @@ def render_chat(client, supabase):
         # Save response
         if st.session_state.current_conversation:
             save_message(supabase, st.session_state.current_conversation['id'], "assistant", formatted, agent.value)
+        
+        # Save to memory if relevant (auto-detect)
+        if coach.get('id') and supabase:
+            message_count = len([m for m in st.session_state.messages if m['role'] == 'user'])
+            conv_id = st.session_state.current_conversation['id'] if st.session_state.current_conversation else None
+            process_memory_save(supabase, coach['id'], prompt, raw_response, conv_id, message_count)
         
         st.session_state.messages.append({
             "role": "assistant",

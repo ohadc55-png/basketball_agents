@@ -11,6 +11,25 @@
     <style>
         body { margin: 0; background: transparent; }
         * { box-sizing: border-box; }
+        .copy-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10B981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 9999;
+            animation: fadeInOut 3s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
     </style>
 </head>
 <body>
@@ -564,6 +583,13 @@ function App() {
     setPositioningPhase(false); setSelectedStep(null);
   };
 
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const save = () => {
     if (!name.trim()) return;
     const playData = {
@@ -575,8 +601,20 @@ function App() {
       a: actions,
       b: initBallId
     };
+
+    // Save locally
     setSaved(s => [...s, playData]);
-    // Notify parent (Streamlit) to save
+
+    // Copy to clipboard for Streamlit form
+    const jsonStr = JSON.stringify(playData);
+    navigator.clipboard.writeText(jsonStr).then(() => {
+      showToast(`"${name.trim()}" copied! Paste in the form below to save to database.`);
+    }).catch(() => {
+      // Fallback - show the JSON in a prompt
+      prompt('Copy this JSON and paste in the form below:', jsonStr);
+    });
+
+    // Also try to notify parent (Streamlit)
     sendToParent('savePlay', playData);
     setShowSave(false);
     setName('');
@@ -1039,6 +1077,10 @@ function App() {
             <button onClick={() => setShowShare(false)} className="w-full mt-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Close</button>
           </div>
         </div>
+      )}
+
+      {toast && (
+        <div className="copy-toast">{toast}</div>
       )}
     </div>
   );

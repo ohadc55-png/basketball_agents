@@ -102,25 +102,43 @@ def render_play_creator_page(supabase, coach):
                             st.success("Play deleted!")
                             st.rerun()
 
-    # Handle form submission for saving plays
-    # This uses a hidden form that the JavaScript component can trigger
+    # Save to Database Section
+    st.markdown("### 💾 Save Play to Database")
+    st.markdown("""
+    <div style="background: #2d3748; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #f48c25;">
+        <strong>How to save:</strong><br>
+        1. Create your play in the editor above<br>
+        2. Click <strong>Save</strong> button and enter a name<br>
+        3. The play data will be copied to your clipboard<br>
+        4. Paste it in the field below and click Save
+    </div>
+    """, unsafe_allow_html=True)
+
     with st.form("save_play_form", clear_on_submit=True):
-        play_name = st.text_input("Play Name", key="new_play_name", label_visibility="collapsed", placeholder="Enter play name...")
-        play_data_json = st.text_area("Play Data (JSON)", key="new_play_data", label_visibility="collapsed", height=100)
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            play_name = st.text_input("Play Name", placeholder="e.g., Horns Flare")
+        with col2:
+            play_data_json = st.text_area("Paste Play Data (JSON)", height=80, placeholder='Paste the copied JSON here...')
 
-        submitted = st.form_submit_button("Save Play", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("💾 Save to Database", use_container_width=True, type="primary")
 
-        if submitted and play_name and play_data_json:
-            try:
-                play_data = json.loads(play_data_json)
-                result = create_play(supabase, coach['id'], play_name, play_data)
-                if result:
-                    st.success(f"✅ Play '{play_name}' saved successfully!")
-                    st.rerun()
-                else:
-                    st.error("Failed to save play. Please try again.")
-            except json.JSONDecodeError:
-                st.error("Invalid play data format.")
+        if submitted:
+            if not play_data_json:
+                st.error("Please paste the play data JSON from the editor above.")
+            else:
+                try:
+                    play_data = json.loads(play_data_json)
+                    # Use name from JSON if not provided
+                    final_name = play_name.strip() if play_name.strip() else play_data.get('name', 'Untitled Play')
+                    result = create_play(supabase, coach['id'], final_name, play_data)
+                    if result:
+                        st.success(f"✅ Play '{final_name}' saved successfully!")
+                        st.rerun()
+                    else:
+                        st.error("Failed to save play. Please check your database connection.")
+                except json.JSONDecodeError as e:
+                    st.error(f"Invalid JSON format. Please copy the data again from the editor.")
 
     # Instructions
     with st.expander("📖 How to Use Play Creator"):

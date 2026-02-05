@@ -1,0 +1,1007 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+
+const OFFENSE = {
+  'empty': { name: 'Empty', players: [
+    { id: 'o1', number: '1', x: 50, y: 78, type: 'offense' },
+    { id: 'o2', number: '2', x: 30, y: 78, type: 'offense' },
+    { id: 'o3', number: '3', x: 70, y: 78, type: 'offense' },
+    { id: 'o4', number: '4', x: 40, y: 70, type: 'offense' },
+    { id: 'o5', number: '5', x: 60, y: 70, type: 'offense' },
+  ]},
+  '5-out': { name: '5-Out', players: [
+    { id: 'o1', number: '1', x: 50, y: 75, type: 'offense' },
+    { id: 'o2', number: '2', x: 15, y: 52, type: 'offense' },
+    { id: 'o3', number: '3', x: 85, y: 52, type: 'offense' },
+    { id: 'o4', number: '4', x: 8, y: 15, type: 'offense' },
+    { id: 'o5', number: '5', x: 92, y: 15, type: 'offense' },
+  ]},
+  '4-out-1-in': { name: '4-Out 1-In', players: [
+    { id: 'o1', number: '1', x: 62, y: 58, type: 'offense' },
+    { id: 'o2', number: '2', x: 8, y: 15, type: 'offense' },
+    { id: 'o3', number: '3', x: 92, y: 15, type: 'offense' },
+    { id: 'o4', number: '4', x: 25, y: 55, type: 'offense' },
+    { id: 'o5', number: '5', x: 50, y: 18, type: 'offense' },
+  ]},
+  'horns': { name: 'Horns', players: [
+    { id: 'o1', number: '1', x: 50, y: 75, type: 'offense' },
+    { id: 'o2', number: '2', x: 8, y: 15, type: 'offense' },
+    { id: 'o3', number: '3', x: 92, y: 15, type: 'offense' },
+    { id: 'o4', number: '4', x: 35, y: 45, type: 'offense' },
+    { id: 'o5', number: '5', x: 65, y: 45, type: 'offense' },
+  ]},
+  'box': { name: 'Box', players: [
+    { id: 'o1', number: '1', x: 50, y: 82, type: 'offense' },
+    { id: 'o2', number: '2', x: 35, y: 38, type: 'offense' },
+    { id: 'o3', number: '3', x: 65, y: 38, type: 'offense' },
+    { id: 'o4', number: '4', x: 35, y: 18, type: 'offense' },
+    { id: 'o5', number: '5', x: 65, y: 18, type: 'offense' },
+  ]},
+  '1-4-high': { name: '1-4 High', players: [
+    { id: 'o1', number: '1', x: 50, y: 75, type: 'offense' },
+    { id: 'o2', number: '2', x: 8, y: 45, type: 'offense' },
+    { id: 'o3', number: '3', x: 92, y: 45, type: 'offense' },
+    { id: 'o4', number: '4', x: 35, y: 45, type: 'offense' },
+    { id: 'o5', number: '5', x: 65, y: 45, type: 'offense' },
+  ]},
+};
+
+const DEFENSE = {
+  'none': { name: 'No Defense', players: [] },
+  'man': { name: 'Man-to-Man', players: [
+    { id: 'd1', number: 'X1', x: 50, y: 72, type: 'defense' },
+    { id: 'd2', number: 'X2', x: 18, y: 52, type: 'defense' },
+    { id: 'd3', number: 'X3', x: 82, y: 52, type: 'defense' },
+    { id: 'd4', number: 'X4', x: 30, y: 28, type: 'defense' },
+    { id: 'd5', number: 'X5', x: 70, y: 28, type: 'defense' },
+  ]},
+  '23': { name: '2-3 Zone', players: [
+    { id: 'd1', number: 'X1', x: 35, y: 62, type: 'defense' },
+    { id: 'd2', number: 'X2', x: 65, y: 62, type: 'defense' },
+    { id: 'd3', number: 'X3', x: 20, y: 32, type: 'defense' },
+    { id: 'd4', number: 'X4', x: 50, y: 25, type: 'defense' },
+    { id: 'd5', number: 'X5', x: 80, y: 32, type: 'defense' },
+  ]},
+  '32': { name: '3-2 Zone', players: [
+    { id: 'd1', number: 'X1', x: 50, y: 65, type: 'defense' },
+    { id: 'd2', number: 'X2', x: 25, y: 55, type: 'defense' },
+    { id: 'd3', number: 'X3', x: 75, y: 55, type: 'defense' },
+    { id: 'd4', number: 'X4', x: 35, y: 25, type: 'defense' },
+    { id: 'd5', number: 'X5', x: 65, y: 25, type: 'defense' },
+  ]},
+};
+
+const ACTIONS = {
+  pass: { name: 'Pass', icon: '⤳', color: '#FBBF24', move: false, ball: true },
+  dribble: { name: 'Dribble', icon: '〰', color: '#34D399', move: true, ball: true },
+  cut: { name: 'Cut', icon: '→', color: '#F472B6', move: true, ball: false },
+  screen: { name: 'Screen', icon: '⊥', color: '#FB923C', move: true, ball: false },
+  handoff: { name: 'Handoff', icon: '⇌', color: '#A78BFA', move: true, ball: true },
+  shot: { name: 'Shot', icon: '◎', color: '#F87171', move: false, ball: false },
+};
+
+const uid = () => Math.random().toString(36).substr(2, 9);
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+
+export default function App() {
+  const [players, setPlayers] = useState([]);
+  const [initPlayers, setInitPlayers] = useState([]);
+  const [actions, setActions] = useState([]);
+  const [selPlayer, setSelPlayer] = useState(null);
+  const [selAction, setSelAction] = useState(null);
+  const [dragPlayer, setDragPlayer] = useState(null);
+  const [drawing, setDrawing] = useState(false);
+  const [curAction, setCurAction] = useState(null);
+  const [mode, setMode] = useState('edit');
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [offTpl, setOffTpl] = useState('5-out');
+  const [defTpl, setDefTpl] = useState('none');
+  const [showTpl, setShowTpl] = useState(true);
+  const [saved, setSaved] = useState([]);
+  const [showSave, setShowSave] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [name, setName] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
+  const [actTime, setActTime] = useState(0);
+  const [ballId, setBallId] = useState(null);
+  const [initBallId, setInitBallId] = useState(null);
+  const [showBall, setShowBall] = useState(false);
+  // New states for curve editing and parallel mode
+  const [editingCurve, setEditingCurve] = useState(null); // action id being edited
+  const [draggingControl, setDraggingControl] = useState(false);
+  const [parallelMode, setParallelMode] = useState(false);
+  const [parallelStart, setParallelStart] = useState(null); // timestamp when parallel started
+  // Positioning phase for Empty template
+  const [positioningPhase, setPositioningPhase] = useState(false);
+  // Timeline - selected step for editing
+  const [selectedStep, setSelectedStep] = useState(null);
+  
+  const ref = useRef(null);
+  const anim = useRef(null);
+
+  useEffect(() => { try { const s = localStorage.getItem('plays'); if(s) setSaved(JSON.parse(s)); } catch(e){} }, []);
+  useEffect(() => { localStorage.setItem('plays', JSON.stringify(saved)); }, [saved]);
+  
+  // Calculate duration considering parallel actions
+  useEffect(() => { 
+    if (actions.length > 0) {
+      const maxTime = Math.max(...actions.map(a => a.t + 1.5));
+      setDuration(maxTime);
+    } else {
+      setDuration(0);
+    }
+  }, [actions]);
+  
+  useEffect(() => {
+    if (playing && mode === 'play') {
+      const start = performance.now() - progress * 1000;
+      const loop = (now) => {
+        const t = (now - start) / 1000;
+        if (t >= duration) { setProgress(duration); setPlaying(false); }
+        else { setProgress(t); anim.current = requestAnimationFrame(loop); }
+      };
+      anim.current = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(anim.current);
+    }
+  }, [playing, mode, duration]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('p');
+    if (p) try {
+      const d = JSON.parse(decodeURIComponent(atob(p)));
+      setOffTpl(d.o); setDefTpl(d.d); setInitPlayers(d.i); setPlayers(JSON.parse(JSON.stringify(d.i)));
+      setActions(d.a); setInitBallId(d.b); setBallId(d.b); setShowTpl(false); setMode('play');
+    } catch(e){}
+  }, []);
+
+  const getXY = useCallback((e) => {
+    if (!ref.current) return null;
+    const r = ref.current.getBoundingClientRect();
+    const cx = e.touches?.[0]?.clientX ?? e.clientX;
+    const cy = e.touches?.[0]?.clientY ?? e.clientY;
+    return { x: clamp(((cx - r.left) / r.width) * 100, 4, 96), y: clamp(((cy - r.top) / r.height) * 88, 4, 84) };
+  }, []);
+
+  const apply = () => {
+    const off = OFFENSE[offTpl]?.players || [];
+    const def = DEFENSE[defTpl]?.players || [];
+    const all = [...off.map(p => ({...p, id: uid()})), ...def.map(p => ({...p, id: uid()}))];
+    setPlayers(all); 
+    setActions([]); setActTime(0); setBallId(null); setInitBallId(null);
+    setShowTpl(false); setParallelMode(false); setParallelStart(null);
+    
+    // For Empty template, enter positioning phase first
+    if (offTpl === 'empty') {
+      setInitPlayers([]); // Don't set initial positions yet
+      setPositioningPhase(true);
+    } else {
+      setInitPlayers(JSON.parse(JSON.stringify(all)));
+      const offensePlayers = all.filter(p => p.type === 'offense');
+      if (offensePlayers.length > 0) setShowBall(true);
+    }
+  };
+  
+  // Confirm positions and start recording
+  const startRecording = () => {
+    setInitPlayers(JSON.parse(JSON.stringify(players)));
+    setPositioningPhase(false);
+    const offensePlayers = players.filter(p => p.type === 'offense');
+    if (offensePlayers.length > 0) setShowBall(true);
+  };
+
+  const pickBall = (id) => { setBallId(id); setInitBallId(id); setShowBall(false); };
+
+  // Group actions by timestamp for timeline
+  const getTimelineSteps = useCallback(() => {
+    const groups = {};
+    actions.forEach(a => {
+      const key = a.t.toFixed(1);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(a);
+    });
+    return Object.entries(groups)
+      .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+      .map(([time, acts], idx) => ({ time: parseFloat(time), actions: acts, step: idx + 1 }));
+  }, [actions]);
+
+  // Get player number by id
+  const getPlayerNumber = (pid) => {
+    const p = players.find(x => x.id === pid) || initPlayers.find(x => x.id === pid);
+    return p ? p.number : '?';
+  };
+
+  // Get quadratic bezier point at t
+  const getBezierPoint = (sx, sy, cx, cy, ex, ey, t) => {
+    const mt = 1 - t;
+    return {
+      x: mt * mt * sx + 2 * mt * t * cx + t * t * ex,
+      y: mt * mt * sy + 2 * mt * t * cy + t * t * ey
+    };
+  };
+
+  const getPos = useCallback((p) => {
+    if (mode !== 'play') return null;
+    const init = initPlayers.find(x => x.id === p.id);
+    if (!init) return null;
+    let x = init.x, y = init.y;
+    
+    for (const a of actions.filter(a => a.pid === p.id && ACTIONS[a.type]?.move)) {
+      const end = a.t + 1.2;
+      if (progress >= end) { x = a.ex; y = a.ey; }
+      else if (progress > a.t) {
+        const t = (progress - a.t) / 1.2;
+        const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+        
+        // Use control point if exists, otherwise calculate default arc
+        const cx = a.cx ?? (a.sx + a.ex) / 2;
+        const cy = a.cy ?? (a.sy + a.ey) / 2;
+        const hasCurve = a.cx !== undefined;
+        
+        if (hasCurve) {
+          // Follow bezier curve
+          const pt = getBezierPoint(a.sx, a.sy, cx, cy, a.ex, a.ey, ease);
+          x = pt.x; y = pt.y;
+        } else {
+          // Default slight arc
+          const dx = a.ex - a.sx, dy = a.ey - a.sy;
+          const dist = Math.hypot(dx, dy);
+          const arcHeight = dist * 0.12;
+          const perpX = -dy / dist, perpY = dx / dist;
+          const arcOffset = Math.sin(ease * Math.PI) * arcHeight;
+          x = a.sx + dx * ease + perpX * arcOffset;
+          y = a.sy + dy * ease + perpY * arcOffset;
+        }
+      }
+    }
+    return { x, y };
+  }, [mode, progress, actions, initPlayers]);
+
+  const getBall = useCallback(() => {
+    if (!initBallId) return null;
+    if (mode === 'edit') {
+      const h = players.find(p => p.id === ballId);
+      return h ? { x: h.x, y: h.y } : null;
+    }
+    let holder = initBallId, bx = null, by = null, moving = false;
+    const ppos = (id, at) => {
+      const init = initPlayers.find(p => p.id === id);
+      if (!init) return null;
+      let x = init.x, y = init.y;
+      for (const a of actions.filter(a => a.pid === id && ACTIONS[a.type]?.move && a.t + 1.2 <= at)) {
+        x = a.ex; y = a.ey;
+      }
+      return { x, y };
+    };
+    for (const a of actions) {
+      const st = a.t, en = a.t + 1.2;
+      if (a.type === 'pass' && a.pid === holder) {
+        if (progress >= st && progress < en) {
+          const t = (progress - st) / 1.2;
+          const from = ppos(a.pid, st);
+          if (from) { bx = from.x + (a.ex - from.x) * t; by = from.y + (a.ey - from.y) * t; moving = true; }
+        } else if (progress >= en) {
+          const offs = players.filter(p => p.type === 'offense' && p.id !== a.pid);
+          let cl = null, cd = Infinity;
+          for (const p of offs) {
+            const pp = ppos(p.id, st);
+            if (pp) { const d = Math.hypot(pp.x - a.ex, pp.y - a.ey); if (d < cd) { cd = d; cl = p; } }
+          }
+          if (cl) holder = cl.id;
+        }
+      } else if ((a.type === 'dribble' || a.type === 'handoff') && a.pid === holder) {
+        if (progress >= st && progress < en) {
+          const t = (progress - st) / 1.2;
+          const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+          
+          const cx = a.cx ?? (a.sx + a.ex) / 2;
+          const cy = a.cy ?? (a.sy + a.ey) / 2;
+          const hasCurve = a.cx !== undefined;
+          
+          if (hasCurve) {
+            const pt = getBezierPoint(a.sx, a.sy, cx, cy, a.ex, a.ey, ease);
+            bx = pt.x; by = pt.y;
+          } else {
+            const dx = a.ex - a.sx, dy = a.ey - a.sy;
+            const dist = Math.hypot(dx, dy);
+            const arcHeight = dist * 0.12;
+            const perpX = -dy / dist, perpY = dx / dist;
+            const arcOffset = Math.sin(ease * Math.PI) * arcHeight;
+            bx = a.sx + dx * ease + perpX * arcOffset;
+            by = a.sy + dy * ease + perpY * arcOffset;
+          }
+          moving = true;
+        } else if (progress >= en && a.type === 'handoff') {
+          const offs = players.filter(p => p.type === 'offense' && p.id !== a.pid);
+          let cl = null, cd = Infinity;
+          for (const p of offs) {
+            const pp = ppos(p.id, en);
+            if (pp) { const d = Math.hypot(pp.x - a.ex, pp.y - a.ey); if (d < cd) { cd = d; cl = p; } }
+          }
+          if (cl) holder = cl.id;
+        }
+      } else if (a.type === 'shot' && a.pid === holder && progress >= st) {
+        if (progress < en) {
+          const t = (progress - st) / 1.2;
+          bx = a.sx + (a.ex - a.sx) * t; by = a.sy + (a.ey - a.sy) * t - Math.sin(t * Math.PI) * 15; moving = true;
+        } else return { x: 50, y: 7 };
+      }
+    }
+    if (!moving) { const hp = ppos(holder, progress); if (hp) { bx = hp.x; by = hp.y; } }
+    return bx !== null ? { x: bx, y: by } : null;
+  }, [mode, progress, actions, players, initPlayers, ballId, initBallId]);
+
+  const vis = useCallback((a, idx) => {
+    if (mode === 'play') return { p: 0, o: 0 };
+    const totalActions = actions.length;
+    const recentCount = 3;
+    if (totalActions > recentCount && idx < totalActions - recentCount) {
+      return { p: 1, o: 0.25 };
+    }
+    return { p: 1, o: 1 };
+  }, [mode, actions.length]);
+
+  const pdown = (e, p) => {
+    e.stopPropagation(); if (mode !== 'edit') return;
+    const xy = getXY(e); if (!xy) return;
+    
+    // During positioning phase, only allow dragging players
+    if (positioningPhase) {
+      setDragPlayer(p); setSelPlayer(p.id);
+      return;
+    }
+    
+    if (selAction) { 
+      setDrawing(true); 
+      setCurAction({ id: uid(), type: selAction, pid: p.id, sx: p.x, sy: p.y, ex: xy.x, ey: xy.y }); 
+    }
+    else { setDragPlayer(p); setSelPlayer(p.id); }
+    setEditingCurve(null); // Deselect any curve being edited
+  };
+
+  const cmove = (e) => {
+    const xy = getXY(e); if (!xy) return;
+    if (drawing && curAction) setCurAction(c => ({...c, ex: xy.x, ey: xy.y}));
+    else if (dragPlayer) setPlayers(ps => ps.map(p => p.id === dragPlayer.id ? {...p, x: xy.x, y: xy.y} : p));
+    else if (draggingControl && editingCurve) {
+      // Update control point of the action being edited
+      setActions(as => as.map(a => a.id === editingCurve ? {...a, cx: xy.x, cy: xy.y} : a));
+    }
+  };
+
+  const cup = () => {
+    if (drawing && curAction) {
+      const d = Math.hypot(curAction.ex - curAction.sx, curAction.ey - curAction.sy);
+      if (d > 5) {
+        // Determine timestamp - if parallel mode, use parallelStart time
+        const timestamp = parallelMode && parallelStart !== null ? parallelStart : actTime;
+        const na = {...curAction, t: timestamp};
+        
+        // Check if this player already has an action at this timestamp (parallel constraint)
+        const existingParallel = actions.find(a => a.t === timestamp && a.pid === curAction.pid);
+        if (parallelMode && existingParallel) {
+          // Can't add - same player already has action in this parallel group
+          alert('This player already has an action in this parallel group');
+        } else {
+          setActions(as => [...as, na]);
+          
+          // Only advance time if not in parallel mode
+          if (!parallelMode) {
+            setActTime(t => t + 1.5);
+          }
+          
+          if (ACTIONS[curAction.type]?.move) {
+            setPlayers(ps => ps.map(p => p.id === curAction.pid ? {...p, x: curAction.ex, y: curAction.ey} : p));
+          }
+          if ((curAction.type === 'pass' || curAction.type === 'handoff') && curAction.pid === ballId) {
+            const offs = players.filter(p => p.type === 'offense' && p.id !== curAction.pid);
+            let cl = null, cd = Infinity;
+            for (const p of offs) { const dist = Math.hypot(p.x - curAction.ex, p.y - curAction.ey); if (dist < cd) { cd = dist; cl = p; } }
+            if (cl) setBallId(cl.id);
+          }
+        }
+      }
+    }
+    setDrawing(false); setCurAction(null); setDragPlayer(null); setDraggingControl(false);
+  };
+
+  // Select a step in timeline to edit it
+  const selectTimelineStep = (step) => {
+    if (selectedStep === step.time) {
+      setSelectedStep(null);
+      setEditingCurve(null);
+      return;
+    }
+    setSelectedStep(step.time);
+    setEditingCurve(null);
+    setSelAction(null);
+    
+    // Revert players to positions at this step (before these actions execute)
+    const ps = JSON.parse(JSON.stringify(initPlayers));
+    let h = initBallId;
+    
+    for (const a of actions) {
+      if (a.t >= step.time) break; // Stop before this step
+      if (ACTIONS[a.type]?.move) {
+        const idx = ps.findIndex(x => x.id === a.pid);
+        if (idx >= 0) { ps[idx].x = a.ex; ps[idx].y = a.ey; }
+      }
+      if ((a.type === 'pass' || a.type === 'handoff') && a.pid === h) {
+        const offs = ps.filter(p => p.type === 'offense' && p.id !== a.pid);
+        let cl = null, cd = Infinity;
+        for (const p of offs) {
+          const d = Math.hypot(p.x - a.ex, p.y - a.ey);
+          if (d < cd) { cd = d; cl = p; }
+        }
+        if (cl) h = cl.id;
+      }
+    }
+    setPlayers(ps);
+    setBallId(h);
+  };
+
+  // Delete specific action
+  const deleteAction = (actionId) => {
+    const actionToDelete = actions.find(a => a.id === actionId);
+    if (!actionToDelete) return;
+    
+    // Remove the action
+    const newActions = actions.filter(a => a.id !== actionId);
+    setActions(newActions);
+    
+    // Recalculate player positions from scratch
+    const ps = JSON.parse(JSON.stringify(initPlayers));
+    let h = initBallId;
+    
+    for (const a of newActions) {
+      if (ACTIONS[a.type]?.move) {
+        const idx = ps.findIndex(x => x.id === a.pid);
+        if (idx >= 0) { ps[idx].x = a.ex; ps[idx].y = a.ey; }
+      }
+      if ((a.type === 'pass' || a.type === 'handoff') && a.pid === h) {
+        const offs = ps.filter(p => p.type === 'offense' && p.id !== a.pid);
+        let cl = null, cd = Infinity;
+        for (const p of offs) {
+          const d = Math.hypot(p.x - a.ex, p.y - a.ey);
+          if (d < cd) { cd = d; cl = p; }
+        }
+        if (cl) h = cl.id;
+      }
+    }
+    setPlayers(ps);
+    setBallId(h);
+    setSelectedStep(null);
+  };
+
+  // Edit action's curve - select it for curve editing
+  const editActionCurve = (actionId) => {
+    setEditingCurve(editingCurve === actionId ? null : actionId);
+  };
+
+  // Toggle parallel mode
+  const toggleParallel = () => {
+    if (!parallelMode) {
+      setParallelMode(true);
+      setParallelStart(actTime);
+    } else {
+      setParallelMode(false);
+      setActTime(t => t + 1.5);
+      setParallelStart(null);
+    }
+    setSelectedStep(null);
+  };
+
+  // Click on action line to edit its curve
+  const onLineClick = (actionId) => {
+    if (mode !== 'edit') return;
+    setEditingCurve(editingCurve === actionId ? null : actionId);
+    setSelAction(null);
+  };
+
+  // Start dragging control point
+  const onControlDown = (e, actionId) => {
+    e.stopPropagation();
+    setDraggingControl(true);
+    setEditingCurve(actionId);
+  };
+
+  const undo = () => {
+    if (!actions.length) return;
+    const last = actions[actions.length - 1];
+    if (ACTIONS[last.type]?.move) setPlayers(ps => ps.map(p => p.id === last.pid ? {...p, x: last.sx, y: last.sy} : p));
+    if (last.type === 'pass' || last.type === 'handoff') setBallId(last.pid);
+    
+    const remainingActions = actions.slice(0, -1);
+    const wasParallel = remainingActions.some(a => a.t === last.t);
+    
+    setActions(remainingActions);
+    
+    if (!wasParallel && !parallelMode) {
+      setActTime(t => Math.max(0, t - 1.5));
+    }
+    setSelectedStep(null);
+  };
+
+  const clear = () => { 
+    setActions([]); setActTime(0); setPlayers(JSON.parse(JSON.stringify(initPlayers))); 
+    setBallId(initBallId); setParallelMode(false); setParallelStart(null); setEditingCurve(null);
+    setPositioningPhase(false); setSelectedStep(null);
+  };
+
+  const save = () => {
+    if (!name.trim()) return;
+    setSaved(s => [...s, { id: uid(), name: name.trim(), o: offTpl, d: defTpl, i: initPlayers, a: actions, b: initBallId }]);
+    setShowSave(false); setName('');
+  };
+
+  const load = (pl) => {
+    setOffTpl(pl.o); setDefTpl(pl.d); setInitPlayers(pl.i); setInitBallId(pl.b);
+    const ps = JSON.parse(JSON.stringify(pl.i));
+    let h = pl.b;
+    for (const a of pl.a) {
+      if (ACTIONS[a.type]?.move) { const i = ps.findIndex(x => x.id === a.pid); if (i >= 0) { ps[i].x = a.ex; ps[i].y = a.ey; } }
+      if ((a.type === 'pass' || a.type === 'handoff') && a.pid === h) {
+        const offs = ps.filter(p => p.type === 'offense' && p.id !== a.pid);
+        let cl = null, cd = Infinity;
+        for (const p of offs) { const d = Math.hypot(p.x - a.ex, p.y - a.ey); if (d < cd) { cd = d; cl = p; } }
+        if (cl) h = cl.id;
+      }
+    }
+    setBallId(h); setPlayers(ps); setActions(pl.a); 
+    const maxT = pl.a.length > 0 ? Math.max(...pl.a.map(a => a.t)) + 1.5 : 0;
+    setActTime(maxT);
+    setMode('edit'); setShowTpl(false); setParallelMode(false); setParallelStart(null);
+  };
+
+  const share = () => {
+    const d = { o: offTpl, d: defTpl, i: initPlayers, a: actions, b: initBallId };
+    setShareUrl(`${location.origin}${location.pathname}?p=${btoa(encodeURIComponent(JSON.stringify(d)))}`);
+    setShowShare(true);
+  };
+
+  // Line component with curve support and click handling
+  const Line = ({ a, p = 1, o = 1, isEditing, onLineClick, onControlDown }) => {
+    const { type, sx, sy, ex, ey, cx, cy } = a;
+    const dx = ex - sx, dy = ey - sy, dist = Math.hypot(dx, dy);
+    if (dist < 2) return null;
+    
+    const col = ACTIONS[type]?.color || '#fff';
+    const hasCurve = cx !== undefined && cy !== undefined;
+    
+    // Calculate control point (default to midpoint with slight offset if no custom)
+    const ctrlX = cx ?? (sx + ex) / 2;
+    const ctrlY = cy ?? (sy + ey) / 2 - dist * 0.15;
+    
+    // For progress animation, calculate point on curve
+    const endPt = hasCurve ? getBezierPoint(sx, sy, ctrlX, ctrlY, ex, ey, p) : { x: sx + dx * p, y: sy + dy * p };
+    
+    const handleClick = (e) => {
+      e.stopPropagation();
+      if (onLineClick) onLineClick(a.id);
+    };
+    
+    if (type === 'screen') {
+      const ang = Math.atan2(ey - sy, ex - sx);
+      const pa = ang + Math.PI / 2;
+      const path = hasCurve ? `M ${sx} ${sy} Q ${ctrlX} ${ctrlY} ${endPt.x} ${endPt.y}` : null;
+      return <g opacity={o} onClick={handleClick} style={{cursor:'pointer'}}>
+        {hasCurve ? <path d={path} fill="none" stroke={col} strokeWidth="0.8"/> : <line x1={sx} y1={sy} x2={endPt.x} y2={endPt.y} stroke={col} strokeWidth="0.8"/>}
+        <line x1={endPt.x - 4*Math.cos(pa)} y1={endPt.y - 4*Math.sin(pa)} x2={endPt.x + 4*Math.cos(pa)} y2={endPt.y + 4*Math.sin(pa)} stroke={col} strokeWidth="1.5" strokeLinecap="round"/>
+        {isEditing && <circle cx={ctrlX} cy={ctrlY} r="2" fill="#fff" stroke={col} strokeWidth="0.5" style={{cursor:'grab'}} onMouseDown={e => onControlDown(e, a.id)} onTouchStart={e => {e.preventDefault(); onControlDown(e, a.id);}}/>}
+      </g>;
+    }
+    
+    if (type === 'shot') {
+      return <g opacity={o} onClick={handleClick} style={{cursor:'pointer'}}>
+        <line x1={sx} y1={sy} x2={endPt.x} y2={endPt.y} stroke={col} strokeWidth="0.8" strokeDasharray="2,1"/>
+        {p===1 && <circle cx={endPt.x} cy={endPt.y} r="2" fill="none" stroke={col} strokeWidth="0.6"/>}
+      </g>;
+    }
+    
+    const ang = Math.atan2(endPt.y - sy, endPt.x - sx);
+    const al = 2.5, aa = Math.PI / 5;
+    const path = hasCurve ? `M ${sx} ${sy} Q ${ctrlX} ${ctrlY} ${endPt.x} ${endPt.y}` : null;
+    const dashArray = type==='pass'?'2,1.5':type==='dribble'?'1,1':'none';
+    
+    return <g opacity={o} onClick={handleClick} style={{cursor:'pointer'}}>
+      {hasCurve ? (
+        <path d={path} fill="none" stroke={col} strokeWidth="0.8" strokeDasharray={dashArray}/>
+      ) : (
+        <line x1={sx} y1={sy} x2={endPt.x} y2={endPt.y} stroke={col} strokeWidth="0.8" strokeDasharray={dashArray}/>
+      )}
+      {type === 'handoff' && <circle cx={(sx+endPt.x)/2} cy={(sy+endPt.y)/2} r="1.5" fill={col} opacity="0.6"/>}
+      {p > 0.15 && <polygon points={`${endPt.x},${endPt.y} ${endPt.x-al*Math.cos(ang-aa)},${endPt.y-al*Math.sin(ang-aa)} ${endPt.x-al*Math.cos(ang+aa)},${endPt.y-al*Math.sin(ang+aa)}`} fill={col}/>}
+      {isEditing && <circle cx={ctrlX} cy={ctrlY} r="2.5" fill="#fff" stroke={col} strokeWidth="0.8" style={{cursor:'grab'}} onMouseDown={e => onControlDown(e, a.id)} onTouchStart={e => {e.preventDefault(); onControlDown(e, a.id);}}/>}
+    </g>;
+  };
+
+  const Ball = ({ x, y }) => <g><circle cx={x} cy={y-6} r="2.8" fill="#F97316" stroke="#C2410C" strokeWidth="0.4"/><path d={`M ${x-2.8} ${y-6} Q ${x} ${y-8} ${x+2.8} ${y-6}`} fill="none" stroke="#C2410C" strokeWidth="0.3"/><line x1={x} y1={y-8.8} x2={x} y2={y-3.2} stroke="#C2410C" strokeWidth="0.3"/></g>;
+
+  const Player = ({ p, sel, pos, ball }) => {
+    const x = pos?.x ?? p.x, y = pos?.y ?? p.y, off = p.type === 'offense';
+    return <g style={{cursor: mode==='edit'?'grab':'default'}} onMouseDown={e => pdown(e,p)} onTouchStart={e => {e.preventDefault(); pdown(e,p);}}>
+      {sel && <circle cx={x} cy={y} r="6" fill="none" stroke="#FBBF24" strokeWidth="0.3" strokeDasharray="1,1" opacity="0.6"/>}
+      <circle cx={x} cy={y} r="4.5" fill={off?'#3B82F6':'#EF4444'} stroke={sel?'#FBBF24':ball?'#F97316':'#fff'} strokeWidth={sel||ball?1.2:0.5}/>
+      <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize="3" fontWeight="bold" style={{pointerEvents:'none',userSelect:'none'}}>{p.number}</text>
+    </g>;
+  };
+
+  const ball = getBall();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white select-none">
+      <header className="bg-slate-800/60 backdrop-blur border-b border-slate-700/50 px-4 py-3 sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <h1 className="text-lg font-bold flex items-center gap-2">
+            <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAwAFADASIAAhEBAxEB/8QAGQAAAwEBAQAAAAAAAAAAAAAABAUGAwcC/8QANxAAAgICAQMDAQUGBAcAAAAAAQIDBAURAAYSIRMxQVEHFCIjMoEVJzN0gqE2QkNUYWRxkbHB/8QAGQEBAQEBAQEAAAAAAAAAAAAAAwUEAgEA/8QAKxEAAQIEBAQHAQEAAAAAAAAAAQIHAAMEIQUSMUFRYZHwEyJxgaHB0TLx/9oADAMBAAIRAxEAPwDmXVo/izOf18/6jcAjXjLqwfxZm/66f9RuEYPEi3BZtWLMFOjWCmaxOSFXuOlUAAlmOjpQCfB+By8hglzEZZLsIXxRE+w4ctV2Y6XjiGXpmopb1c1ku33+6UPSX/ukbf8A48a5e4+G6XodQr0iv7MvuEqz3sn3tJ4J36cQUgaU+550ZqE699Yz+FNWfK3X8eJyPHSMNka4VXwVqxv0IJZdDZ9NC2vy5QfZpkM51xl7detLiOnsbTgNizdhx6SGIb0o7pCfJ8/PsCeWMHSs1jr/ADnSme6u6ha9HSS7iZ1t+hHICp7iyIACVcb0PgHhqq0JsBHaKCaq6lDp/kc3PSOR+7LYlgSvXYbEtqZIFI+u3I8cRZXFz0Lc1aynZYibtdNgkH+3K37UMZRwWFoYzIRQZTr7Jg3cpkZdytCvkiNPgb127A9gfqOTb9d5VbX8SuuVotr1a08KK7fDNG6qDGR51o68eQRzxE8rGZrd97QhpgghIVfvveJ+RNE8HYaPKPqjFfs3LWa0b+rEhBjk1rvRgGU/3UjiGVCraP8AlxTcOI8QdjDXqr/i3N/10/6jcZWP3PR2JUfzWMw0mvqIoR/7kPFfVpYdVZ0xr3OL0+h9f3jcbV6rWxgse8OVstKJZ6fc0FaMbIWRzoSNraa8+fHjgLmplIC16C59BDJlKmqKUamw97QqsZlqtmeaSyHAXS11Hsf/AL/fnaeuOlWz32cdD4t83h8PXoV0lma7N2HbRLrS78+7fTnN4cb0/Jlq1KmcVZvzT+nKrJNZKjTFmDMwQ61/h42sQxrSsS0LV2hNBajrBhBDXWfbhT29ihiNE+d/HJdXjUlaki/Q7lnvFGiwWZKSopbncbB9oc9OPjOkvs4nxdbHWOp7eVsMb0VMvFGIwSI++XWgugPAP/MeEdS9VUb3V/SPUSV0qXsYGjt157sSl+5fwxqULsdMSPK+Qfbkf13LX9K5RoCjZnkKwIJPVnnHcRv8bEheHPEKvT1jCY566NUrJJEySD1ROpLM5A9vOtf68nqxVORMwIPmO5a1nPyP20U0YUsqUjN/I243t8dvCLr2hmM11Vk+oIakzQWP3zhUdVhUKAE7pFUt/KPZf8uILnS+bixT25gvakW3h9XcgGjv8P1AGyPjjjqXPypF0s0ttp5IYxNOFl2zH8P83n39/fhljMGWpPXwlbJWrliIK4WOQemGYgkg++9gD6kcRFZXFKMqQxOwOgLXL8neOFUNGFLzquANSNw9g1+EVokluZGpVsT4mDI2aySqsOIWXSKoUdzylh7DXxvXILq+CAx4u9BFDA96sZZYoQRGHWWSMsg+Fbs7gPjZHtyomsZm2clDJFFj8cleGEvduLA0bSKxUgp3FtqCQBvWuS/WVitK2KjrWoLEtelFWnNZWWAMm1HphgDoronxruLa9+asJFZmUqqJYgNp9ANsGPDW8Y8VFIkJTTM7l9fvXi/PSAuqnI6vzej/ANfP+o3HGQzMWHyvTkthJHr/ALDRCU99vJIxI+vnwf8ATiLq0/xdnP6+f9RuE0szC2PhoZfG1cnVgLGD1WeOSHuO2CuhB7SfPadjfka2eU58kVEoy1aGJ9PPNNOE1OogWrlsLiMjXtYqpcmaIsWaxIF7tqQAAPb35mep8lkfusawJasVpzPC4VpH3s6XQ9x8e3wOPK2Zo1yDR6ewdcj2ZqxsMP7ys3+3GI6xy/Z2R5CWCP8AwVtQL+SAcBOFyyc6w54kknf9MOvGZqUlCLDgAANvwQ6gw+Sv1q8tiTqOZXRJHSGgtSOOTtJI75O3em7dHfwfPtzKPpqjVtrO+Pww2xaX9q5L7xJJ+LY2Ig/nWgfrydmy0lg91iSSV/lnfuJ/PmTXdj3b8+aZOHSZQZNvQNE6fi1TOLqD+pJikt47BJXMclmkkZXs7cbjW7hoqd98sg2dovkr9fqeebueoO7NKczflfQZ7F8Qhx3FgGEKKSASSB3ePjkrNZBQeW+fngTygHf4vz4/gSxzgE1M9Wpb2hlm84bNVKdWrXpU0fvEMJc9za7QWZ2ZmIUaGzoD2A3ybc7PNZG2Twdm88+sAwh0uS5j/9k=" alt="Play Creator" className="h-10 rounded-lg" />
+          </h1>
+          <div className="flex gap-2">
+            <button onClick={() => {setShowTpl(true);setMode('edit');setActions([]);setPlayers([]);setBallId(null);setParallelMode(false);setPositioningPhase(false);}} className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg">+ New</button>
+            {actions.length > 0 && <button onClick={share} className="px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 rounded-lg">Share</button>}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-3">
+        <div className="grid lg:grid-cols-[1fr,240px] gap-4">
+          <div className="space-y-3">
+            {/* Court with Side Toolbars */}
+            <div className="bg-slate-800/50 rounded-2xl p-2 shadow-2xl border border-slate-700/30">
+              <div className="flex gap-2">
+                {/* Action Toolbar - Left Side */}
+                {mode === 'edit' && !positioningPhase && (
+                  <div className="flex flex-col gap-1.5 bg-slate-900/50 rounded-xl p-1.5">
+                    {Object.entries(ACTIONS).map(([k, v]) => (
+                      <button 
+                        key={k} 
+                        onClick={() => {setSelAction(selAction===k?null:k);setEditingCurve(null);setSelectedStep(null);}} 
+                        className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-all ${selAction===k?'ring-2 shadow-lg scale-105':'bg-slate-700/60 hover:bg-slate-600 hover:scale-105'}`} 
+                        style={{backgroundColor:selAction===k?v.color+'30':undefined, ringColor:v.color, boxShadow:selAction===k?`0 0 12px ${v.color}40`:undefined}}
+                        title={v.name}
+                      >
+                        <span className="text-lg">{v.icon}</span>
+                        <span className="text-[8px] text-slate-300 leading-none mt-0.5">{v.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Court */}
+                <div className="flex-1 aspect-[100/88] max-w-md mx-auto rounded-xl overflow-hidden">
+                  <svg ref={ref} viewBox="0 0 100 88" className="w-full h-full" style={{touchAction:'none'}} onMouseMove={cmove} onMouseUp={cup} onMouseLeave={cup} onTouchMove={e=>{e.preventDefault();cmove(e);}} onTouchEnd={cup}>
+                    <defs>
+                      <pattern id="woodGrain" patternUnits="userSpaceOnUse" width="8" height="88">
+                        <rect width="8" height="88" fill="#C17F4E"/>
+                        <rect x="0" y="0" width="8" height="88" fill="#B8733F" opacity="0.3"/>
+                        <line x1="0" y1="0" x2="0" y2="88" stroke="#A05A2C" strokeWidth="0.3" opacity="0.4"/>
+                        <line x1="4" y1="0" x2="4" y2="88" stroke="#D4956A" strokeWidth="0.2" opacity="0.3"/>
+                        <rect x="1" y="5" width="6" height="0.5" fill="#A05A2C" opacity="0.15"/>
+                        <rect x="1" y="20" width="6" height="0.3" fill="#8B4513" opacity="0.1"/>
+                        <rect x="1" y="35" width="6" height="0.4" fill="#A05A2C" opacity="0.12"/>
+                        <rect x="1" y="52" width="6" height="0.3" fill="#8B4513" opacity="0.1"/>
+                        <rect x="1" y="68" width="6" height="0.5" fill="#A05A2C" opacity="0.15"/>
+                        <rect x="1" y="82" width="6" height="0.3" fill="#8B4513" opacity="0.1"/>
+                      </pattern>
+                      <linearGradient id="paintGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#1E3A5F" stopOpacity="0.15"/>
+                        <stop offset="100%" stopColor="#1E3A5F" stopOpacity="0.05"/>
+                      </linearGradient>
+                    </defs>
+                    
+                    <rect x="0" y="0" width="100" height="88" fill="#C8844A"/>
+                    <rect x="0" y="0" width="100" height="88" fill="url(#woodGrain)"/>
+                    <rect x="0" y="0" width="100" height="44" fill="url(#paintGradient)" opacity="0.3"/>
+                    <rect x="31" y="2" width="38" height="38" fill="#1E3A5F" opacity="0.08"/>
+                    <rect x="2" y="2" width="96" height="84" fill="none" stroke="#FFFFFF" strokeWidth="0.8"/>
+                    <path d="M 7 2 L 7 16 Q 7 50 50 57 Q 93 50 93 16 L 93 2" fill="none" stroke="#FFFFFF" strokeWidth="0.6"/>
+                    <rect x="31" y="2" width="38" height="38" fill="none" stroke="#FFFFFF" strokeWidth="0.6"/>
+                    <line x1="31" y1="14" x2="28" y2="14" stroke="#FFFFFF" strokeWidth="0.4"/>
+                    <line x1="31" y1="22" x2="28" y2="22" stroke="#FFFFFF" strokeWidth="0.4"/>
+                    <line x1="31" y1="30" x2="28" y2="30" stroke="#FFFFFF" strokeWidth="0.4"/>
+                    <line x1="69" y1="14" x2="72" y2="14" stroke="#FFFFFF" strokeWidth="0.4"/>
+                    <line x1="69" y1="22" x2="72" y2="22" stroke="#FFFFFF" strokeWidth="0.4"/>
+                    <line x1="69" y1="30" x2="72" y2="30" stroke="#FFFFFF" strokeWidth="0.4"/>
+                    <circle cx="50" cy="40" r="12" fill="none" stroke="#FFFFFF" strokeWidth="0.5"/>
+                    <path d="M 38 40 A 12 12 0 0 0 62 40" fill="none" stroke="#FFFFFF" strokeWidth="0.5" strokeDasharray="2,2"/>
+                    <path d="M 42 2 A 8 8 0 0 0 58 2" fill="none" stroke="#FFFFFF" strokeWidth="0.5"/>
+                    <rect x="44" y="2.5" width="12" height="1" fill="#FFFFFF" opacity="0.9"/>
+                    <rect x="44" y="2.5" width="12" height="1" fill="none" stroke="#333" strokeWidth="0.2"/>
+                    <circle cx="50" cy="6" r="1.5" fill="none" stroke="#FF5722" strokeWidth="0.5"/>
+                    <line x1="50" y1="3.5" x2="50" y2="4.5" stroke="#888" strokeWidth="0.3"/>
+                    <path d="M 48.5 6 Q 50 9 51.5 6" fill="none" stroke="#FFFFFF" strokeWidth="0.2" opacity="0.5"/>
+                    <line x1="2" y1="86" x2="98" y2="86" stroke="#FFFFFF" strokeWidth="0.4" opacity="0.6"/>
+                    <path d="M 38 86 A 12 12 0 0 1 62 86" fill="none" stroke="#FFFFFF" strokeWidth="0.4" opacity="0.6"/>
+                    
+                    {actions.map((a, idx) => { const v = vis(a, idx); return v.o > 0 && <Line key={a.id} a={a} p={v.p} o={v.o} isEditing={editingCurve === a.id} onLineClick={onLineClick} onControlDown={onControlDown}/>; })}
+                    {curAction && <Line a={curAction} p={1} o={0.8} isEditing={false}/>}
+                    {players.map(p => <Player key={p.id} p={p} sel={selPlayer===p.id} pos={getPos(p)} ball={mode==='edit'&&p.id===ballId}/>)}
+                    {ball && <Ball x={ball.x} y={ball.y}/>}
+                  </svg>
+                </div>
+                
+                {/* Control Toolbar - Right Side */}
+                {mode === 'edit' && (
+                  <div className="flex flex-col gap-1.5 bg-slate-900/50 rounded-xl p-1.5">
+                    {positioningPhase ? (
+                      /* Start Recording button during positioning */
+                      <button 
+                        onClick={startRecording}
+                        className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-emerald-600 hover:bg-emerald-500 transition-all hover:scale-105 shadow-lg shadow-emerald-600/30"
+                        title="Start Recording"
+                      >
+                        <span className="text-lg">🎬</span>
+                        <span className="text-[7px] text-white leading-none mt-0.5">START</span>
+                      </button>
+                    ) : (
+                      /* Recording controls */
+                      <>
+                        <button 
+                          onClick={toggleParallel}
+                          className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center transition-all hover:scale-105 ${parallelMode ? 'bg-purple-600 ring-2 ring-purple-400 shadow-lg shadow-purple-600/30' : 'bg-slate-700/60 hover:bg-slate-600'}`}
+                          title={parallelMode ? 'Done Parallel' : 'Parallel Mode'}
+                        >
+                          <span className="text-lg">{parallelMode ? '✓' : '⇉'}</span>
+                          <span className="text-[7px] text-slate-300 leading-none mt-0.5">{parallelMode ? 'DONE' : 'PARALLEL'}</span>
+                        </button>
+                        
+                        <button 
+                          onClick={undo}
+                          disabled={!actions.length}
+                          className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-slate-700/60 hover:bg-slate-600 disabled:bg-slate-800/50 disabled:text-slate-600 transition-all hover:scale-105 disabled:hover:scale-100"
+                          title="Undo"
+                        >
+                          <span className="text-lg">↩️</span>
+                          <span className="text-[7px] text-slate-300 leading-none mt-0.5">UNDO</span>
+                        </button>
+                        
+                        <button 
+                          onClick={clear}
+                          disabled={!actions.length}
+                          className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-red-600/60 hover:bg-red-600 disabled:bg-slate-800/50 disabled:text-slate-600 transition-all hover:scale-105 disabled:hover:scale-100"
+                          title="Clear All"
+                        >
+                          <span className="text-lg">🗑️</span>
+                          <span className="text-[7px] text-slate-300 leading-none mt-0.5">CLEAR</span>
+                        </button>
+                        
+                        <div className="border-t border-slate-600/50 my-1"></div>
+                        
+                        <button 
+                          onClick={()=>setShowSave(true)}
+                          disabled={!actions.length}
+                          className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-amber-600/80 hover:bg-amber-500 disabled:bg-slate-800/50 disabled:text-slate-600 transition-all hover:scale-105 disabled:hover:scale-100"
+                          title="Save Play"
+                        >
+                          <span className="text-lg">💾</span>
+                          <span className="text-[7px] text-slate-300 leading-none mt-0.5">SAVE</span>
+                        </button>
+                        
+                        <button 
+                          onClick={() => {if(actions.length){setMode('play');setProgress(0);setPlaying(false);setSelAction(null);setEditingCurve(null);}}}
+                          disabled={!actions.length}
+                          className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-green-600/80 hover:bg-green-500 disabled:bg-slate-800/50 disabled:text-slate-600 transition-all hover:scale-105 disabled:hover:scale-100"
+                          title="Play Animation"
+                        >
+                          <span className="text-lg">▶️</span>
+                          <span className="text-[7px] text-slate-300 leading-none mt-0.5">PLAY</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {/* Play mode - right toolbar */}
+                {mode === 'play' && (
+                  <div className="flex flex-col gap-1.5 bg-slate-900/50 rounded-xl p-1.5">
+                    <button 
+                      onClick={() => {setMode('edit');setPlaying(false);}}
+                      className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-blue-600/80 hover:bg-blue-500 transition-all hover:scale-105"
+                      title="Back to Edit"
+                    >
+                      <span className="text-lg">✏️</span>
+                      <span className="text-[7px] text-slate-300 leading-none mt-0.5">EDIT</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => {if(progress>=duration)setProgress(0);setPlaying(!playing);}}
+                      className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-green-600/80 hover:bg-green-500 transition-all hover:scale-105"
+                      title={playing ? 'Pause' : 'Play'}
+                    >
+                      <span className="text-lg">{playing ? '⏸' : '▶️'}</span>
+                      <span className="text-[7px] text-slate-300 leading-none mt-0.5">{playing ? 'PAUSE' : 'PLAY'}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setProgress(0)}
+                      className="w-11 h-11 rounded-lg flex flex-col items-center justify-center bg-slate-700/60 hover:bg-slate-600 transition-all hover:scale-105"
+                      title="Restart"
+                    >
+                      <span className="text-lg">⏮️</span>
+                      <span className="text-[7px] text-slate-300 leading-none mt-0.5">RESTART</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Selected action indicator */}
+              {mode === 'edit' && !positioningPhase && selAction && (
+                <div className="mt-2 text-center">
+                  <span className="text-xs px-3 py-1 rounded-full" style={{backgroundColor: ACTIONS[selAction]?.color + '30', color: ACTIONS[selAction]?.color}}>
+                    {ACTIONS[selAction]?.icon} {ACTIONS[selAction]?.name} - Click player and drag
+                  </span>
+                </div>
+              )}
+              
+              {/* Parallel mode indicator */}
+              {mode === 'edit' && !positioningPhase && parallelMode && (
+                <div className="mt-2 text-center">
+                  <span className="text-xs px-3 py-1 rounded-full bg-purple-600/30 text-purple-300">
+                    ⇉ Parallel Mode - Actions will happen simultaneously
+                  </span>
+                </div>
+              )}
+              
+              {/* Positioning phase indicator */}
+              {mode === 'edit' && positioningPhase && (
+                <div className="mt-2 text-center">
+                  <span className="text-xs px-3 py-1 rounded-full bg-emerald-600/30 text-emerald-300">
+                    📍 Position players, then click START
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {mode === 'play' && duration > 0 && (
+              <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/30">
+                <div className="flex items-center gap-3">
+                  <input type="range" min="0" max={duration||1} step="0.05" value={progress} onChange={e=>{setProgress(parseFloat(e.target.value));setPlaying(false);}} className="flex-1 h-2 bg-slate-600 rounded-full appearance-none cursor-pointer accent-green-500"/>
+                  <span className="text-sm text-slate-400 w-16 text-left">{progress.toFixed(1)}s</span>
+                </div>
+              </div>
+            )}
+            
+            {mode === 'edit' && editingCurve && !positioningPhase && (
+              <div className="bg-blue-900/30 border border-blue-500/50 rounded-xl p-3 text-center">
+                <p className="text-blue-300 text-sm">🎯 Drag the control point to curve the path</p>
+              </div>
+            )}
+            
+            {/* Timeline Editor */}
+            {mode === 'edit' && !positioningPhase && actions.length > 0 && (
+              <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/30">
+                <h3 className="text-sm font-semibold text-slate-400 mb-2">📋 Timeline</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {getTimelineSteps().map((step) => (
+                    <div key={step.time} 
+                      className={`rounded-lg p-2 cursor-pointer transition-all ${selectedStep === step.time ? 'bg-blue-600/30 ring-2 ring-blue-400' : 'bg-slate-700/40 hover:bg-slate-700/60'}`}
+                      onClick={() => selectTimelineStep(step)}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-300">Step {step.step}</span>
+                        {step.actions.length > 1 && <span className="text-xs bg-purple-500/30 text-purple-300 px-1.5 rounded">⇉ Parallel</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {step.actions.map(a => (
+                          <div key={a.id} className="flex items-center gap-1 text-xs bg-slate-600/50 rounded px-1.5 py-0.5" style={{borderLeft: `2px solid ${ACTIONS[a.type]?.color}`}}>
+                            <span>{ACTIONS[a.type]?.icon}</span>
+                            <span className="text-slate-300">#{getPlayerNumber(a.pid)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Selected step actions */}
+                {selectedStep !== null && (
+                  <div className="mt-3 pt-3 border-t border-slate-600/50">
+                    <p className="text-xs text-slate-400 mb-2">Edit selected step:</p>
+                    <div className="space-y-1">
+                      {actions.filter(a => a.t === selectedStep).map(a => (
+                        <div key={a.id} className="flex items-center justify-between bg-slate-700/60 rounded-lg p-2">
+                          <div className="flex items-center gap-2">
+                            <span style={{color: ACTIONS[a.type]?.color}}>{ACTIONS[a.type]?.icon}</span>
+                            <span className="text-sm text-slate-300">Player #{getPlayerNumber(a.pid)}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            {ACTIONS[a.type]?.move && (
+                              <button onClick={() => editActionCurve(a.id)} className={`px-2 py-1 text-xs rounded ${editingCurve === a.id ? 'bg-blue-500 text-white' : 'bg-slate-600 hover:bg-slate-500 text-slate-300'}`}>
+                                🎯 Curve
+                              </button>
+                            )}
+                            <button onClick={() => deleteAction(a.id)} className="px-2 py-1 text-xs bg-red-600/50 hover:bg-red-600 text-red-200 rounded">
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => setSelectedStep(null)} className="w-full mt-2 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg">
+                      ✓ Done Editing
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {mode === 'edit' && positioningPhase && (
+              <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/30">
+                <h3 className="text-sm font-semibold text-slate-400 mb-2">Setup Phase</h3>
+                <p className="text-slate-300 text-sm">Drag players to set their starting positions for this play.</p>
+                <p className="text-slate-500 text-xs mt-2">This is where they'll be when the animation starts.</p>
+              </div>
+            )}
+
+            <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/30">
+              <h3 className="text-sm font-semibold text-slate-400 mb-2">Saved Plays</h3>
+              {!saved.length ? <p className="text-slate-500 text-sm text-center py-3">No saved plays</p> : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {saved.map(p => (
+                    <div key={p.id} className="flex items-center justify-between bg-slate-700/40 rounded-lg p-2">
+                      <button onClick={() => load(p)} className="flex-1 text-left text-sm hover:text-blue-400 truncate">{p.name}</button>
+                      <button onClick={() => setSaved(s => s.filter(x => x.id !== p.id))} className="p-1 text-red-400 hover:text-red-300 ml-1">✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/30">
+              <h3 className="text-sm font-semibold text-slate-400 mb-2">Legend</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px]">1</div>Offense</div>
+                <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-[10px]">X</div>Defense</div>
+                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-orange-500"></div>Ball</div>
+                {Object.entries(ACTIONS).map(([k, v]) => (<div key={k} className="flex items-center gap-2"><div className="w-5 h-1 rounded" style={{backgroundColor:v.color}}></div>{v.name}</div>))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {showTpl && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-2xl p-5 max-w-sm w-full">
+            <h2 className="text-lg font-bold mb-4 text-center">Select Template</h2>
+            <div className="space-y-4">
+              <div><h3 className="text-sm text-slate-400 mb-2">Offense</h3><div className="grid grid-cols-2 gap-2">{Object.entries(OFFENSE).map(([k, v]) => (<button key={k} onClick={() => setOffTpl(k)} className={`p-2.5 rounded-lg text-sm ${offTpl===k?'bg-blue-600 ring-2 ring-blue-400':'bg-slate-700 hover:bg-slate-600'}`}>{v.name}</button>))}</div></div>
+              <div><h3 className="text-sm text-slate-400 mb-2">Defense</h3><div className="grid grid-cols-2 gap-2">{Object.entries(DEFENSE).map(([k, v]) => (<button key={k} onClick={() => setDefTpl(k)} className={`p-2.5 rounded-lg text-sm ${defTpl===k?'bg-red-600 ring-2 ring-red-400':'bg-slate-700 hover:bg-slate-600'}`}>{v.name}</button>))}</div></div>
+            </div>
+            <button onClick={apply} className="w-full mt-5 py-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl font-semibold">Start Drawing</button>
+          </div>
+        </div>
+      )}
+
+      {showBall && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-2xl p-5 max-w-xs w-full">
+            <h2 className="text-lg font-bold mb-3 text-center">Who has the ball?</h2>
+            <div className="grid grid-cols-5 gap-2">{players.filter(p => p.type === 'offense').map(p => (<button key={p.id} onClick={() => pickBall(p.id)} className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-lg font-bold">{p.number}</button>))}</div>
+          </div>
+        </div>
+      )}
+
+      {showSave && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-2xl p-5 max-w-xs w-full">
+            <h2 className="text-lg font-bold mb-3">Save Play</h2>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Play name..." className="w-full px-4 py-3 bg-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" autoFocus/>
+            <div className="flex gap-2 mt-4"><button onClick={() => setShowSave(false)} className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Cancel</button><button onClick={save} disabled={!name.trim()} className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 rounded-lg">Save</button></div>
+          </div>
+        </div>
+      )}
+
+      {showShare && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-2xl p-5 max-w-sm w-full">
+            <h2 className="text-lg font-bold mb-2">Share Play</h2>
+            <p className="text-slate-400 text-sm mb-3">Players can view the full animation</p>
+            <div className="flex gap-2"><input type="text" value={shareUrl} readOnly className="flex-1 px-3 py-2 bg-slate-700 rounded-lg text-sm"/><button onClick={() => navigator.clipboard.writeText(shareUrl)} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg">📋</button></div>
+            <button onClick={() => setShowShare(false)} className="w-full mt-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Close</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

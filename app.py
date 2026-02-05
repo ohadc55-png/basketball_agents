@@ -138,7 +138,7 @@ def render_sidebar(supabase):
         # Row 2: Library and Manager
         col3, col4 = st.columns(2)
         with col3:
-            if st.button("📚 DRILLS", use_container_width=True, key="nav_library",
+            if st.button("🏀 PLAYS", use_container_width=True, key="nav_library",
                         type="primary" if st.session_state.current_page == 'library' else "secondary"):
                 st.session_state.current_page = 'library'
                 st.rerun()

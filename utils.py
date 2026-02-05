@@ -993,3 +993,60 @@ def reorder_segments(supabase, session_id, segment_ids):
         return True
     except Exception:
         return False
+
+# ============================================================================
+# DATABASE FUNCTIONS - PLAYS (Visual Play Creator)
+# ============================================================================
+def get_plays(supabase, coach_id):
+    """Get all visual plays for a coach (drills with play_data)"""
+    try:
+        result = supabase.table("drills").select("*").eq("coach_id", coach_id).not_.is_("play_data", "null").order("created_at", desc=True).execute()
+        return result.data or []
+    except Exception as e:
+        print(f"Error getting plays: {e}")
+        return []
+
+def create_play(supabase, coach_id, name, play_data):
+    """Create a new visual play (stored in drills table with play_data)"""
+    try:
+        data = {
+            "coach_id": coach_id,
+            "title": name,
+            "description": f"Visual play: {play_data.get('o', 'custom')} offense",
+            "category": "offense",
+            "duration_minutes": 5,
+            "difficulty": "intermediate",
+            "play_data": play_data,
+            "is_ai_generated": False
+        }
+        result = supabase.table("drills").insert(data).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        print(f"Error creating play: {e}")
+        return None
+
+def update_play(supabase, play_id, name, play_data):
+    """Update an existing play"""
+    try:
+        data = {
+            "title": name,
+            "play_data": play_data
+        }
+        result = supabase.table("drills").update(data).eq("id", play_id).execute()
+        if result.data:
+            return result.data[0]
+        return None
+    except Exception as e:
+        print(f"Error updating play: {e}")
+        return None
+
+def delete_play(supabase, play_id):
+    """Delete a play"""
+    try:
+        supabase.table("drills").delete().eq("id", play_id).execute()
+        return True
+    except Exception as e:
+        print(f"Error deleting play: {e}")
+        return False

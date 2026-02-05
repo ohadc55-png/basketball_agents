@@ -1,363 +1,158 @@
 # -*- coding: utf-8 -*-
 """
-HOOPS AI - Drill Library Page
-Browse, create, and manage basketball drills
+HOOPS AI - Play Creator Page
+Visual basketball play designer with drag-and-drop court editor
 """
 
 import streamlit as st
-from config import DRILL_CATEGORIES, DRILL_DIFFICULTIES, Agent, AGENT_INFO
-from utils import (
-    get_drills, create_drill, update_drill, delete_drill,
-    get_agent_response
-)
-from components.drill_card import render_drill_card
+import streamlit.components.v1 as components
+import json
+import os
+from utils import get_plays, create_play, delete_play
 
-def render_drill_library_page(supabase, coach, openai_client):
-    """Render the Drill Library page"""
 
-    # Page header with new design
+def render_play_creator_page(supabase, coach):
+    """Render the Play Creator page"""
+
+    # Page header
     st.markdown('''
     <div class="page-header">
-        <div class="page-title">📚 Drill Library</div>
-        <div class="page-subtitle">Browse and manage your basketball drills</div>
+        <div class="page-title">🏀 Play Creator</div>
+        <div class="page-subtitle">Design and animate basketball plays with visual editor</div>
     </div>
     ''', unsafe_allow_html=True)
-    
-    # Action bar
-    col1, col2, col3 = st.columns([2, 1, 1])
-    
-    with col1:
-        search = st.text_input("🔍 Search drills...", placeholder="Search by name or description", label_visibility="collapsed")
-    
-    with col2:
-        if st.button("➕ Create Drill", use_container_width=True, type="primary"):
-            st.session_state.show_drill_form = True
-            st.session_state.editing_drill = None
-    
-    with col3:
-        if st.button("🤖 Generate with AI", use_container_width=True):
-            st.session_state.show_ai_generator = True
-    
-    st.markdown("---")
-    
-    # Filters
-    col_f1, col_f2 = st.columns(2)
-    
-    with col_f1:
-        category_options = [("all", "All Categories")] + DRILL_CATEGORIES
-        selected_cat = st.selectbox(
-            "Category",
-            options=[c[0] for c in category_options],
-            format_func=lambda x: dict(category_options)[x],
-            label_visibility="collapsed"
-        )
-    
-    with col_f2:
-        diff_options = [("all", "All Levels")] + DRILL_DIFFICULTIES
-        selected_diff = st.selectbox(
-            "Difficulty",
-            options=[d[0] for d in diff_options],
-            format_func=lambda x: dict(diff_options)[x],
-            label_visibility="collapsed"
-        )
-    
-    # Get drills
-    category_filter = selected_cat if selected_cat != "all" else None
-    difficulty_filter = selected_diff if selected_diff != "all" else None
-    
-    drills = get_drills(supabase, coach['id'], category_filter, difficulty_filter, search)
-    
-    # Stats row
-    total_drills = len(drills)
-    ai_drills = len([d for d in drills if d.get('is_ai_generated')])
-    
-    stat_col1, stat_col2, stat_col3 = st.columns(3)
-    with stat_col1:
-        st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{total_drills}</div>
-            <div class="stat-label">Total Drills</div>
-        </div>
-        ''', unsafe_allow_html=True)
-    with stat_col2:
-        st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{ai_drills}</div>
-            <div class="stat-label">AI Generated</div>
-        </div>
-        ''', unsafe_allow_html=True)
-    with stat_col3:
-        categories_used = len(set(d.get('category') for d in drills if d.get('category')))
-        st.markdown(f'''
-        <div class="stat-card">
-            <div class="stat-value">{categories_used}</div>
-            <div class="stat-label">Categories</div>
-        </div>
-        ''', unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Display drills in grid
-    if drills:
-        # Create 3-column grid
-        cols = st.columns(3)
-        for i, drill in enumerate(drills):
-            with cols[i % 3]:
-                render_drill_card(
-                    drill,
-                    on_edit=lambda d: edit_drill(d),
-                    on_delete=lambda d: confirm_delete_drill(d, supabase),
-                    show_actions=True
-                )
-    else:
-        st.markdown('''
-        <div class="empty-state">
-            <div class="empty-state-icon">📚</div>
-            <div class="empty-state-text">No drills found</div>
-            <div style="color: #888;">Create your first drill or generate one with AI!</div>
-        </div>
-        ''', unsafe_allow_html=True)
-    
-    # Drill form modal
-    if st.session_state.get('show_drill_form', False):
-        render_drill_form(supabase, coach)
-    
-    # AI Generator modal
-    if st.session_state.get('show_ai_generator', False):
-        render_ai_generator(supabase, coach, openai_client)
 
+    # Get saved plays from database
+    saved_plays = get_plays(supabase, coach['id'])
 
-def render_drill_form(supabase, coach):
-    """Render the drill creation/edit form"""
-    
-    editing = st.session_state.get('editing_drill')
-    title = "✏️ Edit Drill" if editing else "➕ Create New Drill"
-    
-    with st.expander(title, expanded=True):
-        with st.form("drill_form"):
-            drill_title = st.text_input("Drill Name *", value=editing.get('title', '') if editing else '')
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                category = st.selectbox(
-                    "Category *",
-                    options=[c[0] for c in DRILL_CATEGORIES],
-                    format_func=lambda x: dict(DRILL_CATEGORIES).get(x, x),
-                    index=0 if not editing else [c[0] for c in DRILL_CATEGORIES].index(editing.get('category', 'offense'))
-                )
-            with col2:
-                difficulty = st.selectbox(
-                    "Difficulty *",
-                    options=[d[0] for d in DRILL_DIFFICULTIES],
-                    format_func=lambda x: dict(DRILL_DIFFICULTIES).get(x, x),
-                    index=0 if not editing else [d[0] for d in DRILL_DIFFICULTIES].index(editing.get('difficulty', 'beginner'))
-                )
-            
-            duration = st.number_input("Duration (minutes)", min_value=1, max_value=60, value=editing.get('duration_minutes', 10) if editing else 10)
-            
-            description = st.text_area("Description", value=editing.get('description', '') if editing else '', height=100)
-            
-            instructions = st.text_area("Instructions", value=editing.get('instructions', '') if editing else '', height=150,
-                                        help="Step by step instructions for running the drill")
-            
-            tags_input = st.text_input("Tags (comma separated)", value=', '.join(editing.get('tags', [])) if editing else '')
-            
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                submitted = st.form_submit_button("💾 Save Drill", use_container_width=True, type="primary")
-            with col_btn2:
-                if st.form_submit_button("❌ Cancel", use_container_width=True):
-                    st.session_state.show_drill_form = False
-                    st.session_state.editing_drill = None
-                    st.rerun()
-            
-            if submitted and drill_title:
-                tags = [t.strip() for t in tags_input.split(',') if t.strip()]
-                
-                if editing:
-                    # Update existing drill
-                    update_drill(supabase, editing['id'], {
-                        'title': drill_title,
-                        'category': category,
-                        'difficulty': difficulty,
-                        'duration_minutes': duration,
-                        'description': description,
-                        'instructions': instructions,
-                        'tags': tags
-                    })
-                    st.success("✅ Drill updated!")
-                else:
-                    # Create new drill
-                    create_drill(
-                        supabase, coach['id'], drill_title, description, category,
-                        duration, difficulty, instructions, [], tags, False
-                    )
-                    st.success("✅ Drill created!")
-                
-                st.session_state.show_drill_form = False
-                st.session_state.editing_drill = None
-                st.rerun()
+    # Convert plays to format expected by the component
+    plays_for_component = []
+    for play in saved_plays:
+        play_data = play.get('play_data', {})
+        if play_data:
+            plays_for_component.append({
+                'id': play['id'],
+                'name': play.get('title', 'Untitled'),
+                'o': play_data.get('o', '5-out'),
+                'd': play_data.get('d', 'none'),
+                'i': play_data.get('i', []),
+                'a': play_data.get('a', []),
+                'b': play_data.get('b')
+            })
 
+    # Load the HTML file
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'play_creator.html')
 
-def render_ai_generator(supabase, coach, openai_client):
-    """Render AI drill generator"""
-    
-    with st.expander("🤖 AI Drill Generator", expanded=True):
-        st.markdown("Describe what kind of drill you need and AI will create it for you!")
-        
-        with st.form("ai_generator"):
-            prompt = st.text_area(
-                "Describe the drill you want",
-                placeholder="e.g., A shooting drill for beginners that focuses on form and can be done with 4-6 players...",
-                height=100
-            )
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                ai_category = st.selectbox(
-                    "Category",
-                    options=[c[0] for c in DRILL_CATEGORIES],
-                    format_func=lambda x: dict(DRILL_CATEGORIES).get(x, x)
-                )
-            with col2:
-                ai_difficulty = st.selectbox(
-                    "Difficulty",
-                    options=[d[0] for d in DRILL_DIFFICULTIES],
-                    format_func=lambda x: dict(DRILL_DIFFICULTIES).get(x, x)
-                )
-            
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                generate = st.form_submit_button("🤖 Generate Drill", use_container_width=True, type="primary")
-            with col_btn2:
-                if st.form_submit_button("❌ Cancel", use_container_width=True):
-                    st.session_state.show_ai_generator = False
-                    st.rerun()
-            
-            if generate and prompt:
-                with st.spinner("🤖 AI is creating your drill..."):
-                    # Build the AI prompt
-                    full_prompt = f"""Create a basketball drill with these requirements:
-                    
-{prompt}
-
-Category: {ai_category}
-Difficulty: {ai_difficulty}
-Age group: {coach.get('age_group', 'Senior')}
-
-Please provide:
-1. A creative drill name
-2. Brief description (2-3 sentences)
-3. Duration in minutes
-4. Step-by-step instructions
-5. Key coaching points (3-5 bullets)
-
-Format your response as:
-NAME: [drill name]
-DURATION: [minutes]
-DESCRIPTION: [description]
-INSTRUCTIONS: [step by step]
-COACHING POINTS:
-- [point 1]
-- [point 2]
-- [point 3]"""
-
-                    # Use existing agent system
-                    response = get_agent_response(
-                        full_prompt,
-                        Agent.SKILLS_COACH,
-                        [],
-                        openai_client,
-                        coach,
-                        supabase
-                    )
-                    
-                    # Parse and save the drill
-                    drill_data = parse_ai_drill_response(response, ai_category, ai_difficulty)
-                    
-                    if drill_data:
-                        created = create_drill(
-                            supabase, coach['id'],
-                            drill_data['title'],
-                            drill_data['description'],
-                            ai_category,
-                            drill_data['duration'],
-                            ai_difficulty,
-                            drill_data['instructions'],
-                            drill_data['coaching_points'],
-                            [],
-                            True  # is_ai_generated
-                        )
-                        
-                        if created:
-                            st.success(f"✅ Created: {drill_data['title']}")
-                            st.session_state.show_ai_generator = False
-                            st.rerun()
-                        else:
-                            st.error("Failed to save drill")
-                    else:
-                        st.warning("Could not parse AI response. Here's what was generated:")
-                        st.markdown(response)
-
-
-def parse_ai_drill_response(response, category, difficulty):
-    """Parse AI response into drill data"""
     try:
-        lines = response.split('\n')
-        
-        drill_data = {
-            'title': 'AI Generated Drill',
-            'description': '',
-            'duration': 10,
-            'instructions': '',
-            'coaching_points': []
-        }
-        
-        current_section = None
-        
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            
-            if line.upper().startswith('NAME:'):
-                drill_data['title'] = line.split(':', 1)[1].strip()
-            elif line.upper().startswith('DURATION:'):
-                try:
-                    duration_str = line.split(':', 1)[1].strip()
-                    drill_data['duration'] = int(''.join(filter(str.isdigit, duration_str)) or '10')
-                except:
-                    pass
-            elif line.upper().startswith('DESCRIPTION:'):
-                drill_data['description'] = line.split(':', 1)[1].strip()
-                current_section = 'description'
-            elif line.upper().startswith('INSTRUCTIONS:'):
-                drill_data['instructions'] = line.split(':', 1)[1].strip()
-                current_section = 'instructions'
-            elif line.upper().startswith('COACHING POINTS'):
-                current_section = 'coaching_points'
-            elif line.startswith('-') and current_section == 'coaching_points':
-                drill_data['coaching_points'].append(line[1:].strip())
-            elif current_section == 'instructions' and not line.upper().startswith(('NAME', 'DURATION', 'DESCRIPTION', 'COACHING')):
-                drill_data['instructions'] += '\n' + line
-            elif current_section == 'description' and not line.upper().startswith(('NAME', 'DURATION', 'INSTRUCTIONS', 'COACHING')):
-                drill_data['description'] += ' ' + line
-        
-        return drill_data
-    except Exception as e:
-        print(f"Error parsing AI response: {e}")
-        return None
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+
+        # Render the component
+        components.html(html_content, height=900, scrolling=True)
+
+    except FileNotFoundError:
+        st.error("Play Creator component not found. Please ensure static/play_creator.html exists.")
+        return
+
+    st.markdown("---")
+
+    # Saved plays management section
+    st.markdown("### 💾 Saved Plays")
+
+    if not saved_plays:
+        st.info("No saved plays yet. Create a play using the editor above and click Save!")
+    else:
+        # Display saved plays in a grid
+        cols = st.columns(3)
+        for i, play in enumerate(saved_plays):
+            with cols[i % 3]:
+                play_data = play.get('play_data', {})
+                offense_tpl = play_data.get('o', 'custom')
+                defense_tpl = play_data.get('d', 'none')
+                actions_count = len(play_data.get('a', []))
+
+                st.markdown(f'''
+                <div style="
+                    background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+                    border-radius: 12px;
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                    border: 1px solid #3d5a7f;
+                ">
+                    <div style="font-weight: bold; font-size: 1rem; margin-bottom: 0.5rem; color: #fff;">
+                        🏀 {play.get('title', 'Untitled')}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">
+                        Offense: {offense_tpl} | Defense: {defense_tpl}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #888;">
+                        {actions_count} actions
+                    </div>
+                </div>
+                ''', unsafe_allow_html=True)
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("▶️ Load", key=f"load_{play['id']}", use_container_width=True):
+                        st.session_state.load_play = play
+                        st.rerun()
+                with col2:
+                    if st.button("🗑️", key=f"delete_{play['id']}", use_container_width=True):
+                        if delete_play(supabase, play['id']):
+                            st.success("Play deleted!")
+                            st.rerun()
+
+    # Handle form submission for saving plays
+    # This uses a hidden form that the JavaScript component can trigger
+    with st.form("save_play_form", clear_on_submit=True):
+        play_name = st.text_input("Play Name", key="new_play_name", label_visibility="collapsed", placeholder="Enter play name...")
+        play_data_json = st.text_area("Play Data (JSON)", key="new_play_data", label_visibility="collapsed", height=100)
+
+        submitted = st.form_submit_button("Save Play", use_container_width=True, type="primary")
+
+        if submitted and play_name and play_data_json:
+            try:
+                play_data = json.loads(play_data_json)
+                result = create_play(supabase, coach['id'], play_name, play_data)
+                if result:
+                    st.success(f"✅ Play '{play_name}' saved successfully!")
+                    st.rerun()
+                else:
+                    st.error("Failed to save play. Please try again.")
+            except json.JSONDecodeError:
+                st.error("Invalid play data format.")
+
+    # Instructions
+    with st.expander("📖 How to Use Play Creator"):
+        st.markdown("""
+        ### Getting Started
+        1. **Select Template** - Choose an offensive formation (5-Out, Horns, Box, etc.) and optional defense
+        2. **Position Players** - If using "Empty" template, drag players to starting positions
+        3. **Pick Ball Carrier** - Select which player starts with the ball
+
+        ### Drawing Actions
+        - **Pass** ⤳ - Click player, drag to target location
+        - **Dribble** 〰 - Player moves with the ball
+        - **Cut** → - Player moves without ball
+        - **Screen** ⊥ - Set a screen
+        - **Handoff** ⇌ - Hand the ball to nearby player
+        - **Shot** ◎ - Attempt a shot at the basket
+
+        ### Advanced Features
+        - **Parallel Mode** ⇉ - Make multiple players move simultaneously
+        - **Curve Paths** 🎯 - Click on action lines and drag control point to curve
+        - **Timeline** - Edit or delete specific steps
+
+        ### Controls
+        - **Undo** - Remove last action
+        - **Clear** - Reset to initial positions
+        - **Play** ▶️ - Watch the animation
+        - **Save** 💾 - Save to your library
+        - **Share** - Get a link to share the play
+        """)
 
 
-def edit_drill(drill):
-    """Set up drill for editing"""
-    st.session_state.editing_drill = drill
-    st.session_state.show_drill_form = True
-    st.rerun()
-
-
-def confirm_delete_drill(drill, supabase):
-    """Delete a drill"""
-    if delete_drill(supabase, drill['id']):
-        st.success(f"Deleted: {drill['title']}")
-        st.rerun()
+# Keep backward compatibility - alias for the old function name
+def render_drill_library_page(supabase, coach, openai_client=None):
+    """Backward compatible wrapper"""
+    render_play_creator_page(supabase, coach)
